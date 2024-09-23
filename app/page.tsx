@@ -15,7 +15,7 @@ import {Button} from "@nextui-org/button";
 export default function Home() {
       return (
             <section className="relative flex flex-col items-center justify-center gap-4 py-8 md:py-10">
-                  <Globe className="absolute inset-0 z-0 opacity-15"/>
+                  <Globe className="absolute inset-0 z-0 opacity-25"/>
                   <HyperText
                         className="relative text-8xl font-bold text-black dark:text-white z-10"
                         text="Messecure"
