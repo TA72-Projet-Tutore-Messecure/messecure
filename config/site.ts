@@ -11,6 +11,10 @@ export const siteConfig = {
     {
       label: "Docs",
       href: "/docs",
+    },
+    {
+      label: "Chat",
+      href: "/chat",
     }
   ],
   navMenuItems: [
