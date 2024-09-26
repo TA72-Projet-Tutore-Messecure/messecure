@@ -5,7 +5,7 @@ import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
 import React from "react";
 import {Providers} from "@/app/providers";
-import {CAside} from "@/components/c/aside";
+import {CAside} from "@/components/c/aside/aside";
 
 export const metadata: Metadata = {
    title: {
