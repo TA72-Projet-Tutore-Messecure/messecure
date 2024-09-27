@@ -1,7 +1,7 @@
 import { Input } from "@nextui-org/input";
 import { SearchIcon } from "@/components/icons";
 
-export const Search = () => {
+export const CAsideSearch = () => {
 			return (
 									<Input
 															isClearable
@@ -18,15 +18,15 @@ export const Search = () => {
 																		inputWrapper: [
 																					"bg-[#f4f4f5] dark:bg-[#2c2c2c]",
 																					"group-focus-within:ring-1", // Larger ring size on focus
-																					"group-focus-within:ring-[#8472dc]", // Apply ring color on focus
-																					"group-focus-within:border-[#8472dc]", // Focused border color
+																					"group-focus-within:ring-[#3390ec] dark:group-focus-within:ring-[#8472dc]", // Apply ring color on focus
+																					"group-focus-within:border-[#3390ec] dark:group-focus-within:border-[#8472dc]", // Focused border color
 																					"border border-transparent", // Initial border color
 																					"transition-all", // Smooth transition for border and ring
 																		],
 															}}
 															placeholder="Search"
 															startContent={
-																		<SearchIcon className="mb-0.5 mr-2.5 text-default-700/50 dark:text-white/30 text-slate-400 pointer-events-none flex-shrink-0 group-focus-within:text-[#8472dc]" />
+																		<SearchIcon className="!w-[1.3em] !h-[1.3em] mb-0.5 mr-2.5 text-default-700/50 dark:text-white/30 text-slate-400 pointer-events-none flex-shrink-0 group-focus-within:text-[#3390ec] dark:group-focus-within:text-[#8472dc]" />
 															}
 									/>
 			);
