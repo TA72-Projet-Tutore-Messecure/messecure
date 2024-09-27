@@ -231,3 +231,5 @@ export const SunEmptyIcon = (props: IconSvgProps) => (
 									<path d="M5.32178 5.32227L4.92894 4.92943" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
 						</svg>
 );
+
+
