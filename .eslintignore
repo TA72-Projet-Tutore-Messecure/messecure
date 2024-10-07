@@ -9,6 +9,8 @@ scripts/*
 *.config.js
 .DS_Store
 node_modules
+components/magicui/**/*
+components/icons.tsx
 coverage
 .next
 build
