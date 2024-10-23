@@ -2,13 +2,13 @@
 
 import { useTheme } from "next-themes";
 import { useEffect, useState, useRef } from "react";
+import { Input } from "@nextui-org/input";
+import { FaPaperclip, FaPaperPlane, FaSmile } from "react-icons/fa";
+import { Button } from "@nextui-org/button";
 
 import { BaseMessage } from "@/components/c/content/BaseMessage";
 import { MessageStatus, MessageTarget } from "@/types/messages";
 import { DocumentMessage } from "@/components/c/content/DocumentMessage";
-import { Input } from "@nextui-org/input";
-import { FaPaperclip, FaPaperPlane, FaSearch, FaSmile } from "react-icons/fa";
-import { Button } from "@nextui-org/button";
 
 export default function Chat() {
   const { theme } = useTheme();
@@ -191,17 +191,17 @@ export default function Chat() {
       </div>
       <div className="w-full flex flex-row gap-1 px-32">
         <Input
-          size="lg"
           color="default"
-          startContent={<FaSmile className="cursor-pointer" />}
           endContent={<FaPaperclip className="cursor-pointer" />}
           placeholder="Message"
+          size="lg"
+          startContent={<FaSmile className="cursor-pointer" />}
         />
         <Button
           className="rounded-xl bg-white dark:bg-[#766ac8]"
           size="lg"
           startContent={<FaPaperPlane />}
-        ></Button>
+        />
       </div>
     </section>
   );
