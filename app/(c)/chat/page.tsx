@@ -3,12 +3,13 @@
 import { useTheme } from "next-themes";
 import { useEffect, useState, useRef } from "react";
 import { Input } from "@nextui-org/input";
-import { FaPaperclip, FaPaperPlane, FaSmile } from "react-icons/fa";
+import { FaPaperclip, FaPaperPlane, FaSearch, FaSmile } from "react-icons/fa";
 import { Button } from "@nextui-org/button";
 
 import { BaseMessage } from "@/components/c/content/BaseMessage";
 import { MessageStatus, MessageTarget } from "@/types/messages";
 import { DocumentMessage } from "@/components/c/content/DocumentMessage";
+import { FaHandDots } from "react-icons/fa6";
 
 export default function Chat() {
   const { theme } = useTheme();
@@ -35,7 +36,7 @@ export default function Chat() {
   const isDarkTheme = theme === "dark";
 
   return (
-    <section className="h-full relative flex flex-col items-center py-4 gap-4 text-black dark:text-white">
+    <section className="h-full relative flex flex-col items-center pb-4 text-black dark:text-white">
       <div
         className="absolute inset-0 z-0"
         style={{
@@ -48,7 +49,16 @@ export default function Chat() {
           backgroundPosition: "center", // Keeps the image centered
         }}
       />
-      <div className="w-full h-full flex flex-col gap-3 overflow-y-auto max-h-[85vh]">
+      <div className="bg-white dark:bg-[#212121] w-full flex justify-between flex-row h-[10vh] z-50 shadow items-center">
+        <div>
+
+        </div>
+        <div className="flex flex-row gap-2">
+          <FaSearch className="w-5 h-5"/>
+          <FaHandDots/>
+        </div>
+      </div>
+      <div className="w-full h-full py-2 flex flex-col gap-3 overflow-y-auto max-h-[80vh]">
         {/* Chat messages */}
         <BaseMessage
           message="Hello, this is a basic message!"
