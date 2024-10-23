@@ -1,26 +1,41 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import { BaseMessage } from "@/components/c/content/BaseMessage";
 import { MessageStatus, MessageTarget } from "@/types/messages";
 import { DocumentMessage } from "@/components/c/content/DocumentMessage";
+import { Input } from "@nextui-org/input";
+import { FaPaperclip, FaPaperPlane, FaSearch, FaSmile } from "react-icons/fa";
+import { Button } from "@nextui-org/button";
 
 export default function Chat() {
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const messagesEndRef = useRef(null); // Ref to track the message container
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    scrollToBottom(); // Scroll to bottom when component mounts
+  }, [mounted]);
+
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      // @ts-ignore
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   if (!mounted) return null; // Ensures proper client-side rendering
 
   const isDarkTheme = theme === "dark";
 
   return (
-    <section className="h-full relative flex flex-col items-center justify-center gap-4 py-8 md:py-10 text-black dark:text-white">
+    <section className="h-full relative flex flex-col items-center py-4 gap-4 text-black dark:text-white">
       <div
         className="absolute inset-0 z-0"
         style={{
@@ -33,30 +48,160 @@ export default function Chat() {
           backgroundPosition: "center", // Keeps the image centered
         }}
       />
-      <div className="relative z-10">
-        <div className="w-full h-full flex flex-col gap-3">
-          <BaseMessage
-            message="Hello, this is a basic message!Hello, this is a basic message!Hello, this is a basic message!Hello, this is a basic message!Hello, this is a basic message!"
-            status={MessageStatus.READ}
-            target={MessageTarget.SENDER}
-            time="10:30 AM"
-          />
-          <BaseMessage
-            message="Hello, this is a basic message!Hello, this is a basic message!Hello, this is a basic message!Hello, this is a basic message!Hello, this is a basic message!"
-            status={MessageStatus.READ}
-            target={MessageTarget.RECEIVER}
-            time="10:30 AM"
-          />
-          <DocumentMessage
-            documentLink="https://github.com/TA72-Projet-Tutore-Messecure/messecure-frontend"
-            documentName="Secret.pdf"
-            documentSize="2MB"
-            message="This is the document for toto"
-            status={MessageStatus.READ}
-            target={MessageTarget.SENDER}
-            time="10:30 AM"
-          />
-        </div>
+      <div className="w-full h-full flex flex-col gap-3 overflow-y-auto max-h-[85vh]">
+        {/* Chat messages */}
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.SENDER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.SENDER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+        <BaseMessage
+          message="Hello, this is a basic message!"
+          status={MessageStatus.READ}
+          target={MessageTarget.RECEIVER}
+          time="10:30 AM"
+        />
+
+        <DocumentMessage
+          documentLink="https://github.com/TA72-Projet-Tutore-Messecure/messecure-frontend"
+          documentName="Secret.pdf"
+          documentSize="2MB"
+          message="This is the document for review"
+          status={MessageStatus.READ}
+          target={MessageTarget.SENDER}
+          time="10:30 AM"
+        />
+        {/* End of messages placeholder */}
+        <div ref={messagesEndRef} />
+      </div>
+      <div className="w-full flex flex-row gap-1 px-32">
+        <Input
+          size="lg"
+          color="default"
+          startContent={<FaSmile className="cursor-pointer" />}
+          endContent={<FaPaperclip className="cursor-pointer" />}
+          placeholder="Message"
+        />
+        <Button
+          className="rounded-xl bg-white dark:bg-[#766ac8]"
+          size="lg"
+          startContent={<FaPaperPlane />}
+        ></Button>
       </div>
     </section>
   );
