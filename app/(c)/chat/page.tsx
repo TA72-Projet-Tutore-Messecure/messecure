@@ -1,218 +1,37 @@
 "use client";
 
-import { useTheme } from "next-themes";
-import { useEffect, useState, useRef } from "react";
-import { Input } from "@nextui-org/input";
-import { FaPaperclip, FaPaperPlane, FaSearch, FaSmile } from "react-icons/fa";
-import { Button } from "@nextui-org/button";
+import { useState, useEffect } from "react";
+import { Spinner } from "@nextui-org/react";
 
-import { BaseMessage } from "@/components/c/content/BaseMessage";
-import { MessageStatus, MessageTarget } from "@/types/messages";
-import { DocumentMessage } from "@/components/c/content/DocumentMessage";
-import { FaHandDots } from "react-icons/fa6";
+import { MessageContainer } from "@/components/c/content/MessageContainer";
+import { ChatHeader } from "@/components/c/content/ChatHeader";
+import { ChatBackground } from "@/components/c/content/ChatBackground";
+import { ChatMessageBar } from "@/components/c/content/ChatMessageBar";
 
 export default function Chat() {
-  const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  const messagesEndRef = useRef(null); // Ref to track the message container
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setMounted(true);
+    // Simulate loading delay or fetch logic here
+    const timer = setTimeout(() => setLoading(false), 1000); // Adjust time if needed
+
+    return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    scrollToBottom(); // Scroll to bottom when component mounts
-  }, [mounted]);
-
-  const scrollToBottom = () => {
-    if (messagesEndRef.current) {
-      // @ts-ignore
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  };
-
-  if (!mounted) return null; // Ensures proper client-side rendering
-
-  const isDarkTheme = theme === "dark";
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Spinner color="primary" label="Loading" labelColor="primary" />
+      </div>
+    );
+  }
 
   return (
     <section className="h-full relative flex flex-col items-center pb-4 text-black dark:text-white">
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          backgroundImage: isDarkTheme
-            ? 'url("/chat-background.svg")'
-            : 'url("/chat-background.svg"), linear-gradient(to bottom left, rgba(217, 249, 157, 0.8), rgba(52, 211, 153, 0.8), rgba(22, 163, 74, 0.8))',
-          filter: isDarkTheme ? "invert(1)" : "none",
-          backgroundSize: "auto", // This ensures the entire image is visible
-          backgroundRepeat: "repeat", // Prevents the image from repeating
-          backgroundPosition: "center", // Keeps the image centered
-        }}
-      />
-      <div className="bg-white dark:bg-[#212121] w-full flex justify-between flex-row h-[10vh] z-50 shadow items-center">
-        <div>
-
-        </div>
-        <div className="flex flex-row gap-2">
-          <FaSearch className="w-5 h-5"/>
-          <FaHandDots/>
-        </div>
-      </div>
-      <div className="w-full h-full py-2 flex flex-col gap-3 overflow-y-auto max-h-[80vh]">
-        {/* Chat messages */}
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.SENDER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.SENDER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-        <BaseMessage
-          message="Hello, this is a basic message!"
-          status={MessageStatus.READ}
-          target={MessageTarget.RECEIVER}
-          time="10:30 AM"
-        />
-
-        <DocumentMessage
-          documentLink="https://github.com/TA72-Projet-Tutore-Messecure/messecure-frontend"
-          documentName="Secret.pdf"
-          documentSize="2MB"
-          message="This is the document for review"
-          status={MessageStatus.READ}
-          target={MessageTarget.SENDER}
-          time="10:30 AM"
-        />
-        {/* End of messages placeholder */}
-        <div ref={messagesEndRef} />
-      </div>
-      <div className="w-full flex flex-row gap-1 px-32">
-        <Input
-          color="default"
-          endContent={<FaPaperclip className="cursor-pointer" />}
-          placeholder="Message"
-          size="lg"
-          startContent={<FaSmile className="cursor-pointer" />}
-        />
-        <Button
-          className="rounded-xl bg-white dark:bg-[#766ac8]"
-          size="lg"
-          startContent={<FaPaperPlane />}
-        />
-      </div>
+      <ChatBackground />
+      <ChatHeader />
+      <MessageContainer />
+      <ChatMessageBar />
     </section>
   );
 }
