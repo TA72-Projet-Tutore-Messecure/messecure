@@ -1,6 +1,7 @@
 // services/MatrixService.ts
+"use client";
 
-import * as sdk from 'matrix-js-sdk';
+import * as sdk from "matrix-js-sdk/lib/browser-index";
 
 class MatrixService {
   private static instance: MatrixService;
@@ -10,9 +11,9 @@ class MatrixService {
 
   private constructor() {
     // Initialize from localStorage if available
-    if (typeof window !== 'undefined') {
-      this.accessToken = localStorage.getItem('matrixAccessToken');
-      this.userId = localStorage.getItem('matrixUserId');
+    if (typeof window !== "undefined") {
+      this.accessToken = localStorage.getItem("matrixAccessToken");
+      this.userId = localStorage.getItem("matrixUserId");
       if (this.accessToken && this.userId) {
         this.initializeClient();
       }
@@ -23,12 +24,13 @@ class MatrixService {
     if (!MatrixService.instance) {
       MatrixService.instance = new MatrixService();
     }
+
     return MatrixService.instance;
   }
 
   private initializeClient() {
     this.matrixClient = sdk.createClient({
-      baseUrl: process.env.NEXT_PUBLIC_MATRIX_SERVER || 'http://localhost:8008',
+      baseUrl: process.env.NEXT_PUBLIC_MATRIX_SERVER || "http://localhost:8008",
       accessToken: this.accessToken!,
       userId: this.userId!,
     });
@@ -43,12 +45,13 @@ class MatrixService {
   async register(username: string, password: string): Promise<void> {
     try {
       this.matrixClient = sdk.createClient({
-        baseUrl: process.env.NEXT_PUBLIC_MATRIX_SERVER || 'http://localhost:8008',
+        baseUrl:
+          process.env.NEXT_PUBLIC_MATRIX_SERVER || "http://localhost:8008",
       });
       await this.matrixClient.registerRequest({
         username,
         password,
-        auth: { type: 'm.login.dummy' },
+        auth: { type: "m.login.dummy" },
       });
     } catch (error) {
       throw new Error(`Registration failed: ${error}`);
@@ -63,19 +66,21 @@ class MatrixService {
   async login(username: string, password: string): Promise<void> {
     try {
       this.matrixClient = sdk.createClient({
-        baseUrl: process.env.NEXT_PUBLIC_MATRIX_SERVER || 'http://localhost:8008',
+        baseUrl:
+          process.env.NEXT_PUBLIC_MATRIX_SERVER || "http://localhost:8008",
       });
-      const response = await this.matrixClient.login('m.login.password', {
+      const response = await this.matrixClient.login("m.login.password", {
         user: username,
         password: password,
       });
+
       this.accessToken = response.access_token;
       this.userId = response.user_id;
 
       // Save credentials to localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('matrixAccessToken', this.accessToken);
-        localStorage.setItem('matrixUserId', this.userId);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("matrixAccessToken", this.accessToken);
+        localStorage.setItem("matrixUserId", this.userId);
       }
 
       this.initializeClient();
@@ -95,13 +100,13 @@ class MatrixService {
         this.matrixClient = null;
       }
     } catch (error) {
-      console.error('Error during logout:', error);
+      //console.error("Error during logout:", error);
     } finally {
       this.accessToken = null;
       this.userId = null;
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('matrixAccessToken');
-        localStorage.removeItem('matrixUserId');
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("matrixAccessToken");
+        localStorage.removeItem("matrixUserId");
       }
     }
   }
@@ -120,8 +125,9 @@ class MatrixService {
    */
   getClient(): sdk.MatrixClient {
     if (!this.matrixClient) {
-      throw new Error('Matrix client is not initialized.');
+      throw new Error("Matrix client is not initialized.");
     }
+
     return this.matrixClient;
   }
 
@@ -134,9 +140,10 @@ class MatrixService {
     try {
       const response = await this.getClient().createRoom({
         // @ts-ignore
-        visibility: 'private',
+        visibility: "private",
         name: roomName,
       });
+
       return response.room_id;
     } catch (error) {
       throw new Error(`Room creation failed: ${error}`);
@@ -159,6 +166,7 @@ class MatrixService {
   async joinRoom(roomIdOrAlias: string): Promise<string> {
     try {
       const room = await this.getClient().joinRoom(roomIdOrAlias);
+
       return room.roomId;
     } catch (error) {
       throw new Error(`Joining room failed: ${error}`);
@@ -180,12 +188,24 @@ class MatrixService {
   /**
    * Search for users.
    * @param keyword - The search keyword.
-   * @returns An array of user IDs.
+   * @returns An array of user objects with user IDs and display names.
    */
-  async searchUsers(keyword: string): Promise<string[]> {
+  async searchUsers(
+    keyword: string,
+  ): Promise<{ user_id: string; display_name: string }[]> {
     try {
-      const response = await this.getClient().searchUserDirectory({ term: keyword });
-      return response.results.map((user) => user.user_id);
+      const response = await this.getClient().searchUserDirectory({
+        term: keyword,
+      });
+
+      if (response.results && response.results.length > 0) {
+        return response.results.map((user) => ({
+          user_id: user.user_id,
+          display_name: user.display_name || user.user_id,
+        }));
+      } else {
+        return [];
+      }
     } catch (error) {
       throw new Error(`User search failed: ${error}`);
     }
@@ -202,6 +222,7 @@ class MatrixService {
         is_direct: true,
         invite: [userId],
       });
+
       return response.room_id;
     } catch (error) {
       throw new Error(`Starting direct message failed: ${error}`);
@@ -216,11 +237,17 @@ class MatrixService {
   async sendMessage(roomId: string, message: string): Promise<void> {
     try {
       const txnId = `m${new Date().getTime()}`;
+
       // @ts-ignore
-      await this.getClient().sendEvent(roomId, 'm.room.message', {
-        body: message,
-        msgtype: 'm.text',
-      }, txnId);
+      await this.getClient().sendEvent(
+        roomId,
+        "m.room.message",
+        {
+          body: message,
+          msgtype: "m.text",
+        },
+        txnId,
+      );
     } catch (error) {
       throw new Error(`Sending message failed: ${error}`);
     }
@@ -233,11 +260,13 @@ class MatrixService {
    */
   getMessages(roomId: string): string[] {
     const room = this.getClient().getRoom(roomId);
+
     if (!room) {
-      throw new Error('Room not found.');
+      throw new Error("Room not found.");
     }
+
     return room.timeline
-      .filter((event) => event.getType() === 'm.room.message')
+      .filter((event) => event.getType() === "m.room.message")
       .map((event) => `${event.getSender()}: ${event.getContent().body}`);
   }
 
@@ -248,7 +277,7 @@ class MatrixService {
   getInvitations(): string[] {
     return this.getClient()
       .getRooms()
-      .filter((room) => room.getMyMembership() === 'invite')
+      .filter((room) => room.getMyMembership() === "invite")
       .map((room) => room.roomId);
   }
 

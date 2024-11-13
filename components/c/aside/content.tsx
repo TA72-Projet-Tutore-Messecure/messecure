@@ -1,30 +1,31 @@
+// components/c/aside/content.tsx
+
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 
 import { CAsideConversation } from "@/components/c/aside/conversation";
-import { createRandomUsers } from "@/services/UserService";
+import { useMatrix } from "@/context/MatrixContext";
 
 export const CAsideContent: React.FC = () => {
-  // The activeIndex state will either be a number or null (for no active conversation)
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const { rooms, selectedRoom, selectRoom, clientReady } = useMatrix();
 
-  // Generate users only once using useState
-  const [users] = useState(() => createRandomUsers(200));
-
-  // TypeScript will infer that index is a number here
-  const handleClick = (index: number) => {
-    setActiveIndex(index); // Set the clicked conversation as active
-  };
+  if (!clientReady) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        Loading rooms...
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-full flex flex-col items-center py-2 px-2 overflow-y-auto">
-      {users.map((user, index: number) => (
+      {rooms.map((room) => (
         <CAsideConversation
-          key={index}
-          active={activeIndex === index} // Check if this conversation is active
-          user={user}
-          onClick={() => handleClick(index)} // Set this conversation as active on click
+          key={room.roomId}
+          active={selectedRoom?.roomId === room.roomId}
+          room={room}
+          onClick={() => selectRoom(room.roomId)}
         />
       ))}
     </div>

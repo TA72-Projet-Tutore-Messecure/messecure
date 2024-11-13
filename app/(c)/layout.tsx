@@ -5,8 +5,11 @@ import React from "react";
 
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
-import { Providers } from "@/app/providers";
+import { Providers } from "@/app/(providers)/providers";
 import { CAside } from "@/components/c/aside/aside";
+import { MatrixProvider } from "@/context/MatrixContext";
+import { ClientProviders } from "@/app/(providers)/ClientProviders";
+import AuthGuard from "@/guard/AuthGuard";
 
 export const metadata: Metadata = {
   title: {
@@ -33,20 +36,33 @@ export default function RootLayout({
 }) {
   return (
     <html suppressHydrationWarning lang="en">
-      <head />
-      <body
-        className={clsx(
-          "min-h-screen bg-background font-sans antialiased",
-          fontSans.variable,
-        )}
-      >
-        <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
-          <div className="relative flex flex-row h-screen">
-            <CAside />
-            <main className="container w-full">{children}</main>
-          </div>
-        </Providers>
-      </body>
+    <head>
+      {/* Other head elements */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+              if (typeof global === 'undefined') {
+                var global = window;
+              }
+            `,
+        }}
+      />
+    </head>
+    <body
+      className={clsx(
+        "min-h-screen bg-background font-sans antialiased",
+        fontSans.variable,
+      )}
+    >
+    <AuthGuard>
+      <ClientProviders>
+        <div className="relative flex flex-row h-screen">
+          <CAside />
+          <main className="container w-full">{children}</main>
+        </div>
+      </ClientProviders>
+    </AuthGuard>
+    </body>
     </html>
   );
 }

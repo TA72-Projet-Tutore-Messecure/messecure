@@ -32,7 +32,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: development  # ou 'production' selon vos besoins
+      target: production  # ou 'production' selon vos besoins
     container_name: messecure-app
     volumes:
       - ./:/app
