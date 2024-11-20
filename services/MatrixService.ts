@@ -2,6 +2,7 @@
 "use client";
 
 import * as sdk from "matrix-js-sdk/lib/browser-index";
+import { MatrixErrorParser } from "@/lib/matrixErrorParser";
 
 class MatrixService {
   private static instance: MatrixService;
@@ -54,7 +55,12 @@ class MatrixService {
         auth: { type: "m.login.dummy" },
       });
     } catch (error) {
-      throw new Error(`Registration failed: ${error}`);
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+        throw new Error(`Registration failed: ${parsedError?.message}`, { cause: parsedError });
+      } else {
+        throw new Error("Registration failed: Unknown error");
+      }
     }
   }
 
@@ -85,7 +91,12 @@ class MatrixService {
 
       this.initializeClient();
     } catch (error) {
-      throw new Error(`Login failed: ${error}`);
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+        throw new Error(`Login failed: ${parsedError?.message}`, { cause: parsedError });
+      } else {
+        throw new Error("Login failed: Unknown error");
+      }
     }
   }
 
@@ -100,7 +111,12 @@ class MatrixService {
         this.matrixClient = null;
       }
     } catch (error) {
-      //console.error("Error during logout:", error);
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+        throw new Error(`Logout failed: ${parsedError?.message}`, { cause: parsedError });
+      } else {
+        throw new Error("Logout failed: Unknown error");
+      }
     } finally {
       this.accessToken = null;
       this.userId = null;
@@ -146,7 +162,12 @@ class MatrixService {
 
       return response.room_id;
     } catch (error) {
-      throw new Error(`Room creation failed: ${error}`);
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+        throw new Error(`Room creation failed: ${parsedError?.message}`, { cause: parsedError });
+      } else {
+        throw new Error("Room creation failed: Unknown error");
+      }
     }
   }
 
@@ -155,7 +176,16 @@ class MatrixService {
    * @returns An array of rooms.
    */
   listRooms(): sdk.Room[] {
-    return this.getClient().getRooms();
+    try {
+      return this.getClient().getRooms();
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+        throw new Error(`Listing rooms failed: ${parsedError?.message}`, { cause: parsedError });
+      } else {
+        throw new Error("Listing rooms failed: Unknown error");
+      }
+    }
   }
 
   /**
@@ -169,7 +199,12 @@ class MatrixService {
 
       return room.roomId;
     } catch (error) {
-      throw new Error(`Joining room failed: ${error}`);
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+        throw new Error(`Joining room failed: ${parsedError?.message}`, { cause: parsedError });
+      } else {
+        throw new Error("Joining room failed: Unknown error");
+      }
     }
   }
 
@@ -181,7 +216,12 @@ class MatrixService {
     try {
       await this.getClient().leave(roomId);
     } catch (error) {
-      throw new Error(`Leaving room failed: ${error}`);
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+        throw new Error(`Leaving room failed: ${parsedError?.message}`, { cause: parsedError });
+      } else {
+        throw new Error("Leaving room failed: Unknown error");
+      }
     }
   }
 
@@ -207,7 +247,12 @@ class MatrixService {
         return [];
       }
     } catch (error) {
-      throw new Error(`User search failed: ${error}`);
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+        throw new Error(`User search failed: ${parsedError?.message}`, { cause: parsedError });
+      } else {
+        throw new Error("User search failed: Unknown error");
+      }
     }
   }
 
@@ -225,7 +270,12 @@ class MatrixService {
 
       return response.room_id;
     } catch (error) {
-      throw new Error(`Starting direct message failed: ${error}`);
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+        throw new Error(`Starting direct message failed: ${parsedError?.message}`, { cause: parsedError });
+      } else {
+        throw new Error("Starting direct message failed: Unknown error");
+      }
     }
   }
 
@@ -249,7 +299,12 @@ class MatrixService {
         txnId,
       );
     } catch (error) {
-      throw new Error(`Sending message failed: ${error}`);
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+        throw new Error(`Sending message failed: ${parsedError?.message}`, { cause: parsedError });
+      } else {
+        throw new Error("Sending message failed: Unknown error");
+      }
     }
   }
 
@@ -259,15 +314,24 @@ class MatrixService {
    * @returns An array of message contents.
    */
   getMessages(roomId: string): string[] {
-    const room = this.getClient().getRoom(roomId);
+    try {
+      const room = this.getClient().getRoom(roomId);
 
-    if (!room) {
-      throw new Error("Room not found.");
+      if (!room) {
+        throw new Error("Room not found.");
+      }
+
+      return room.timeline
+        .filter((event) => event.getType() === "m.room.message")
+        .map((event) => `${event.getSender()}: ${event.getContent().body}`);
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+        throw new Error(`Retrieving messages failed: ${parsedError?.message}`, { cause: parsedError });
+      } else {
+        throw new Error("Retrieving messages failed: Unknown error");
+      }
     }
-
-    return room.timeline
-      .filter((event) => event.getType() === "m.room.message")
-      .map((event) => `${event.getSender()}: ${event.getContent().body}`);
   }
 
   /**
@@ -275,10 +339,19 @@ class MatrixService {
    * @returns An array of room IDs.
    */
   getInvitations(): string[] {
-    return this.getClient()
-      .getRooms()
-      .filter((room) => room.getMyMembership() === "invite")
-      .map((room) => room.roomId);
+    try {
+      return this.getClient()
+        .getRooms()
+        .filter((room) => room.getMyMembership() === "invite")
+        .map((room) => room.roomId);
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+        throw new Error(`Getting invitations failed: ${parsedError?.message}`, { cause: parsedError });
+      } else {
+        throw new Error("Getting invitations failed: Unknown error");
+      }
+    }
   }
 
   /**
@@ -289,7 +362,12 @@ class MatrixService {
     try {
       await this.getClient().joinRoom(roomId);
     } catch (error) {
-      throw new Error(`Accepting invitation failed: ${error}`);
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+        throw new Error(`Accepting invitation failed: ${parsedError?.message}`, { cause: parsedError });
+      } else {
+        throw new Error("Accepting invitation failed: Unknown error");
+      }
     }
   }
 
@@ -301,7 +379,12 @@ class MatrixService {
     try {
       await this.getClient().leave(roomId);
     } catch (error) {
-      throw new Error(`Declining invitation failed: ${error}`);
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+        throw new Error(`Declining invitation failed: ${parsedError?.message}`, { cause: parsedError });
+      } else {
+        throw new Error("Declining invitation failed: Unknown error");
+      }
     }
   }
 }

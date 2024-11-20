@@ -33,13 +33,17 @@ registration_shared_secret: "b;~fy^Ni6A9MbFp5k#hu&XKH1gkW29dFriJ;+Mp@0_;WbbSwJp"
 
 enable_registration: true
 
+user_directory:
+  enabled: true
+  search_all_users: true
+
 ## Enable email notifications
 #email:
 #  enabled: true
 #  smtp_host: "smtp.gmail.com"  # Replace with your SMTP server
 #  smtp_port: 465                 # Port for TLS/STARTTLS
 #  smtp_user: "rogerproxmox@gmail.com"
-#  smtp_pass: "avvtzjuoyamhayhl "
+#  smtp_pass: "avvtzjuoyamhayhl"
 #  require_transport_security: true
 #  notif_from: "Messecure <rogerproxmox@gmail.com>"
 #  app_name: "Messecure"

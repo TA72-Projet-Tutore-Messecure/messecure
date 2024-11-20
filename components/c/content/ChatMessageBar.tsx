@@ -16,8 +16,9 @@ export const ChatMessageBar: React.FC = () => {
 
   const handleSend = async () => {
     if (message.trim() !== "" && selectedRoom) {
-      await sendMessage(message.trim());
+      let messageToSend = message.trim();
       setMessage("");
+      await sendMessage(messageToSend);
     }
   };
 

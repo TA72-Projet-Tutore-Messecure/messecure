@@ -9,6 +9,7 @@ import { Navbar } from "@/components/navbar/navbar";
 
 import { Providers } from "../(providers)/providers";
 import { ClientProviders } from "@/app/(providers)/ClientProviders";
+import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: {
@@ -55,6 +56,7 @@ export default function RootLayout({
       )}
     >
     <ClientProviders>
+      <div><Toaster position="bottom-right" reverseOrder={false} /></div>
       <div className="relative flex flex-col h-screen">
         <Navbar />
         <main className="container mx-auto max-w-7xl pt-16 px-6 flex-grow">
