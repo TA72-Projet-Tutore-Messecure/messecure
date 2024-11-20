@@ -2,12 +2,12 @@ import "@/styles/globals.css";
 import { Metadata, Viewport } from "next";
 import clsx from "clsx";
 import React from "react";
+import { Toaster } from "react-hot-toast";
 
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
-import { Navbar } from "@/components/navbar";
-
-import { Providers } from "../providers";
+import { Navbar } from "@/components/navbar/navbar";
+import { ClientProviders } from "@/app/(providers)/ClientProviders";
 
 export const metadata: Metadata = {
   title: {
@@ -34,14 +34,28 @@ export default function RootLayout({
 }) {
   return (
     <html suppressHydrationWarning lang="en">
-      <head />
+      <head>
+        {/* Other head elements */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof global === 'undefined') {
+                var global = window;
+              }
+            `,
+          }}
+        />
+      </head>
       <body
         className={clsx(
           "min-h-screen bg-background font-sans antialiased",
           fontSans.variable,
         )}
       >
-        <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
+        <ClientProviders>
+          <div>
+            <Toaster position="bottom-right" reverseOrder={false} />
+          </div>
           <div className="relative flex flex-col h-screen">
             <Navbar />
             <main className="container mx-auto max-w-7xl pt-16 px-6 flex-grow">
@@ -49,7 +63,7 @@ export default function RootLayout({
             </main>
             <footer className="w-full flex items-center justify-center py-3" />
           </div>
-        </Providers>
+        </ClientProviders>
       </body>
     </html>
   );

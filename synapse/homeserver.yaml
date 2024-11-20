@@ -1,0 +1,67 @@
+server_name: "localhost"
+pid_file: /data/homeserver.pid
+listeners:
+  - port: 8008
+    tls: false
+    type: http
+    x_forwarded: true
+    bind_addresses: ['0.0.0.0']
+    resources:
+      - names: [client, federation]
+        compress: false
+    headers:
+      'Access-Control-Allow-Origin':
+        - '*'
+      'Access-Control-Allow-Methods':
+          - 'GET, POST, PUT, DELETE, OPTIONS'
+      'Access-Control-Allow-Headers':
+          - '*'
+database:
+  name: psycopg2
+  txn_limit: 10000
+  args:
+    user: synapse
+    password: aComplexPassphraseNobodyCanGuess  # Assurez-vous que ce mot de passe correspond à celui du docker-compose.yml
+    database: synapse
+    host: postgres
+    port: 5432
+    cp_min: 5
+    cp_max: 10
+# log_config: "/data/localhost.log.config"  # Commenté si le fichier n'existe pas
+media_store_path: /data/media_store
+registration_shared_secret: "b;~fy^Ni6A9MbFp5k#hu&XKH1gkW29dFriJ;+Mp@0_;WbbSwJp"
+
+enable_registration: true
+
+user_directory:
+  enabled: true
+  search_all_users: true
+
+## Enable email notifications
+#email:
+#  enabled: true
+#  smtp_host: "smtp.gmail.com"  # Replace with your SMTP server
+#  smtp_port: 465                 # Port for TLS/STARTTLS
+#  smtp_user: "rogerproxmox@gmail.com"
+#  smtp_pass: "avvtzjuoyamhayhl"
+#  require_transport_security: true
+#  notif_from: "Messecure <rogerproxmox@gmail.com>"
+#  app_name: "Messecure"
+#
+## Require email verification during registration
+#registrations_require_3pid:
+#  - email
+#
+#account_threepid_delegate:
+#  email: ""
+
+# Optionally, set the email validation token lifetime (in milliseconds)
+#email_validation_token_lifetime: 86400000  # 24 hours
+enable_registration_without_verification: true
+enable_user_directory: true
+report_stats: true
+macaroon_secret_key: "NU,z40F4Un6I3U2Lh.*,pa#7p7jpneX:KymGCx9Ufb3Bof=6Il"
+form_secret: "t&P3ov*1Pm;;_,NJF_vCz_D9iI7w.s-^^B;qu+b&mftnwd&sop"
+signing_key_path: "/data/localhost.signing.key"
+trusted_key_servers:
+  - server_name: "matrix.org"

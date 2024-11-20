@@ -1,173 +1,60 @@
-import React, { useEffect, useRef, useState } from "react";
+// components/c/content/MessageContainer.tsx
 
-import { MessageStatus, MessageTarget } from "@/types/messages";
-import { DocumentMessage } from "@/components/c/content/messages/DocumentMessage";
+"use client";
+
+import React, { useEffect, useRef } from "react";
+import { MatrixEvent } from "matrix-js-sdk";
+
 import { BaseMessage } from "@/components/c/content/messages/BaseMessage";
+import { MessageStatus, MessageTarget } from "@/types/messages";
+import MatrixService from "@/services/MatrixService";
+import { useMatrix } from "@/context/MatrixContext";
 
 export const MessageContainer: React.FC = () => {
-  const [mounted, setMounted] = useState(false);
-  const messagesEndRef = useRef(null); // Ref to track the message container
+  const { messages, selectedRoom } = useMatrix();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    scrollToBottom(); // Scroll to bottom when component mounts
-  }, [mounted]);
+    scrollToBottom();
+  }, [messages]);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
-      // @ts-ignore
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   };
 
-  if (!mounted) return null; // Ensures proper client-side rendering
+  if (!selectedRoom) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        No conversations available.
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full py-2 flex flex-col gap-3 overflow-y-auto max-h-[80vh]">
-      {/* Chat messages */}
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.SENDER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.SENDER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
-      <BaseMessage
-        message="Hello, this is a basic message!"
-        status={MessageStatus.READ}
-        target={MessageTarget.RECEIVER}
-        time="10:30 AM"
-      />
+      {messages.map((event: MatrixEvent) => {
+        const sender = event.getSender();
+        const content = event.getContent();
+        const message = content.body || "";
+        const time = event.getDate()?.toLocaleTimeString() || "";
+        const target =
+          sender === MatrixService.getClient().getUserId()
+            ? MessageTarget.SENDER
+            : MessageTarget.RECEIVER;
 
-      <DocumentMessage
-        documentLink="https://github.com/TA72-Projet-Tutore-Messecure/messecure-frontend"
-        documentName="Secret.pdf"
-        documentSize="2MB"
-        message="This is the document for review"
-        status={MessageStatus.READ}
-        target={MessageTarget.SENDER}
-        time="10:30 AM"
-      />
-      {/* End of messages placeholder */}
+        return (
+          <BaseMessage
+            key={event.getId()}
+            message={message}
+            status={MessageStatus.READ}
+            target={target}
+            time={time}
+          />
+        );
+      })}
       <div ref={messagesEndRef} />
     </div>
   );
 };
-
-export default MessageContainer;

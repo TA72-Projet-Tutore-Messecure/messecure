@@ -7,18 +7,26 @@ import {
   DropdownTrigger,
 } from "@nextui-org/react";
 import { Button } from "@nextui-org/button";
-import { SettingsIcon } from "lucide-react";
+import { LogOutIcon, SettingsIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useIsSSR } from "@react-aria/ssr";
+import { useRouter } from "next/navigation";
 
 import { BurgerIcon, MoonFilledIcon, SunFilledIcon } from "@/components/icons";
+import MatrixService from "@/services/MatrixService";
 
 export const CAsideBurger = () => {
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
   const isSSR = useIsSSR();
 
   const onChange = () => {
     theme === "light" ? setTheme("dark") : setTheme("light");
+  };
+
+  const logout = () => {
+    MatrixService.logout();
+    router.push("/");
   };
 
   return (
@@ -59,6 +67,13 @@ export const CAsideBurger = () => {
             {theme === "light" || isSSR
               ? "Change to dark mode"
               : "Change to light mode"}
+          </DropdownItem>
+          <DropdownItem
+            key="logout"
+            startContent={<LogOutIcon className="w-[1.5em] h-[1.5em]" />}
+            onClick={logout}
+          >
+            Logout
           </DropdownItem>
         </DropdownSection>
         <DropdownSection className="m-0">
