@@ -79,6 +79,7 @@ export const CAsideSearch = () => {
           setSearchTerm(e.target.value);
           handleSearch();
         }}
+        onClear={() => setSearchTerm('')}
       />
       {searchResults.length > 0 && (
         <Dropdown className="absolute z-50 w-full mt-2">
