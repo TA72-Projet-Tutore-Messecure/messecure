@@ -8,6 +8,7 @@ import React, {
   useCallback,
 } from "react";
 import { Room, MatrixEvent, SyncState } from "matrix-js-sdk";
+
 import MatrixService from "@/services/MatrixService";
 
 interface MatrixContextProps {
@@ -42,8 +43,8 @@ const isMessageEvent = (event: MatrixEvent): boolean => {
 };
 
 export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
-                                                                          children,
-                                                                        }) => {
+  children,
+}) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [messages, setMessages] = useState<MatrixEvent[]>([]);
@@ -66,6 +67,7 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
     // Automatically select the first room if none is selected
     if (allRooms.length > 0 && !selectedRoom) {
       const room = allRooms[0];
+
       selectRoom(room.roomId);
     }
   }, [selectedRoom]);
@@ -158,10 +160,7 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
      * @param room - The Room where the event occurred.
      */
     const onRoomTimeline = (event: MatrixEvent, room: Room) => {
-      if (
-        room.roomId === selectedRoom?.roomId &&
-        isMessageEvent(event)
-      ) {
+      if (room.roomId === selectedRoom?.roomId && isMessageEvent(event)) {
         setMessages((prevMessages) => [...prevMessages, event]);
       }
     };

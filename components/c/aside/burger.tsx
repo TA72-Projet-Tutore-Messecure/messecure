@@ -10,10 +10,10 @@ import { Button } from "@nextui-org/button";
 import { LogOutIcon, SettingsIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useIsSSR } from "@react-aria/ssr";
+import { useRouter } from "next/navigation";
 
 import { BurgerIcon, MoonFilledIcon, SunFilledIcon } from "@/components/icons";
 import MatrixService from "@/services/MatrixService";
-import { useRouter } from "next/navigation";
 
 export const CAsideBurger = () => {
   const { theme, setTheme } = useTheme();
@@ -25,9 +25,9 @@ export const CAsideBurger = () => {
   };
 
   const logout = () => {
-    MatrixService.logout()
+    MatrixService.logout();
     router.push("/");
-  }
+  };
 
   return (
     <Dropdown

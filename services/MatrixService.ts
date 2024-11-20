@@ -2,6 +2,7 @@
 "use client";
 
 import * as sdk from "matrix-js-sdk/lib/browser-index";
+
 import { MatrixErrorParser } from "@/lib/matrixErrorParser";
 
 class MatrixService {
@@ -57,7 +58,10 @@ class MatrixService {
     } catch (error) {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
-        throw new Error(`Registration failed: ${parsedError?.message}`, { cause: parsedError });
+
+        throw new Error(`Registration failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
       } else {
         throw new Error("Registration failed: Unknown error");
       }
@@ -93,7 +97,10 @@ class MatrixService {
     } catch (error) {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
-        throw new Error(`Login failed: ${parsedError?.message}`, { cause: parsedError });
+
+        throw new Error(`Login failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
       } else {
         throw new Error("Login failed: Unknown error");
       }
@@ -113,7 +120,10 @@ class MatrixService {
     } catch (error) {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
-        throw new Error(`Logout failed: ${parsedError?.message}`, { cause: parsedError });
+
+        throw new Error(`Logout failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
       } else {
         throw new Error("Logout failed: Unknown error");
       }
@@ -164,7 +174,10 @@ class MatrixService {
     } catch (error) {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
-        throw new Error(`Room creation failed: ${parsedError?.message}`, { cause: parsedError });
+
+        throw new Error(`Room creation failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
       } else {
         throw new Error("Room creation failed: Unknown error");
       }
@@ -181,7 +194,10 @@ class MatrixService {
     } catch (error) {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
-        throw new Error(`Listing rooms failed: ${parsedError?.message}`, { cause: parsedError });
+
+        throw new Error(`Listing rooms failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
       } else {
         throw new Error("Listing rooms failed: Unknown error");
       }
@@ -201,7 +217,10 @@ class MatrixService {
     } catch (error) {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
-        throw new Error(`Joining room failed: ${parsedError?.message}`, { cause: parsedError });
+
+        throw new Error(`Joining room failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
       } else {
         throw new Error("Joining room failed: Unknown error");
       }
@@ -218,7 +237,10 @@ class MatrixService {
     } catch (error) {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
-        throw new Error(`Leaving room failed: ${parsedError?.message}`, { cause: parsedError });
+
+        throw new Error(`Leaving room failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
       } else {
         throw new Error("Leaving room failed: Unknown error");
       }
@@ -249,7 +271,10 @@ class MatrixService {
     } catch (error) {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
-        throw new Error(`User search failed: ${parsedError?.message}`, { cause: parsedError });
+
+        throw new Error(`User search failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
       } else {
         throw new Error("User search failed: Unknown error");
       }
@@ -272,7 +297,11 @@ class MatrixService {
     } catch (error) {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
-        throw new Error(`Starting direct message failed: ${parsedError?.message}`, { cause: parsedError });
+
+        throw new Error(
+          `Starting direct message failed: ${parsedError?.message}`,
+          { cause: parsedError },
+        );
       } else {
         throw new Error("Starting direct message failed: Unknown error");
       }
@@ -301,7 +330,10 @@ class MatrixService {
     } catch (error) {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
-        throw new Error(`Sending message failed: ${parsedError?.message}`, { cause: parsedError });
+
+        throw new Error(`Sending message failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
       } else {
         throw new Error("Sending message failed: Unknown error");
       }
@@ -327,7 +359,10 @@ class MatrixService {
     } catch (error) {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
-        throw new Error(`Retrieving messages failed: ${parsedError?.message}`, { cause: parsedError });
+
+        throw new Error(`Retrieving messages failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
       } else {
         throw new Error("Retrieving messages failed: Unknown error");
       }
@@ -347,7 +382,10 @@ class MatrixService {
     } catch (error) {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
-        throw new Error(`Getting invitations failed: ${parsedError?.message}`, { cause: parsedError });
+
+        throw new Error(`Getting invitations failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
       } else {
         throw new Error("Getting invitations failed: Unknown error");
       }
@@ -364,7 +402,11 @@ class MatrixService {
     } catch (error) {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
-        throw new Error(`Accepting invitation failed: ${parsedError?.message}`, { cause: parsedError });
+
+        throw new Error(
+          `Accepting invitation failed: ${parsedError?.message}`,
+          { cause: parsedError },
+        );
       } else {
         throw new Error("Accepting invitation failed: Unknown error");
       }
@@ -381,7 +423,11 @@ class MatrixService {
     } catch (error) {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
-        throw new Error(`Declining invitation failed: ${parsedError?.message}`, { cause: parsedError });
+
+        throw new Error(
+          `Declining invitation failed: ${parsedError?.message}`,
+          { cause: parsedError },
+        );
       } else {
         throw new Error("Declining invitation failed: Unknown error");
       }

@@ -3,12 +3,13 @@
 
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
-import MatrixService from "@/services/MatrixService";
 import { toast } from "react-hot-toast";
 import { Card, CardBody, CardHeader } from "@nextui-org/card";
 import { Button, Divider, Input } from "@nextui-org/react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { Link } from "@nextui-org/link";
+
+import MatrixService from "@/services/MatrixService";
 
 interface RegisterInfo {
   username: string;
@@ -35,7 +36,10 @@ export default function RegisterForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await MatrixService.register(registerInfo.username, registerInfo.password);
+      await MatrixService.register(
+        registerInfo.username,
+        registerInfo.password,
+      );
       toast.success("Registration successful! Redirecting to login...");
       router.push("/login"); // Redirect to login page after registration
     } catch (error: any) {
@@ -54,7 +58,10 @@ export default function RegisterForm() {
   };
 
   const isFormValid = () => {
-    return isValidUsername(registerInfo.username) && isValidPassword(registerInfo.password);
+    return (
+      isValidUsername(registerInfo.username) &&
+      isValidPassword(registerInfo.password)
+    );
   };
 
   return (

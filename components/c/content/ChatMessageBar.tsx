@@ -17,12 +17,14 @@ export const ChatMessageBar: React.FC = () => {
   const handleSend = async () => {
     if (message.trim() !== "" && selectedRoom) {
       let messageToSend = message.trim();
+
       setMessage("");
       await sendMessage(messageToSend);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => { // Changed from handleKeyPress to handleKeyDown
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Changed from handleKeyPress to handleKeyDown
     if (e.key === "Enter") {
       e.preventDefault();
       handleSend();
@@ -47,11 +49,11 @@ export const ChatMessageBar: React.FC = () => {
         onKeyDown={handleKeyDown} // Updated event handler
       />
       <Button
-        type="button" // Explicitly set the button type to prevent form submission behavior
         className="rounded-xl bg-white dark:bg-[#766ac8]"
         isDisabled={!selectedRoom}
         size="lg"
         startContent={<FaPaperPlane />}
+        type="button" // Explicitly set the button type to prevent form submission behavior
         onClick={handleSend}
       />
     </div>

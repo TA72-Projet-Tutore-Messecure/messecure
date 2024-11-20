@@ -3,6 +3,7 @@
 "use client";
 
 import React from "react";
+
 import { Providers } from "@/app/(providers)/providers"; // If this is a client component
 import { MatrixProvider } from "@/context/MatrixContext";
 
@@ -10,9 +11,7 @@ import { MatrixProvider } from "@/context/MatrixContext";
 export function ClientProviders({ children }) {
   return (
     <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
-      <MatrixProvider>
-        {children}
-      </MatrixProvider>
+      <MatrixProvider>{children}</MatrixProvider>
     </Providers>
   );
 }

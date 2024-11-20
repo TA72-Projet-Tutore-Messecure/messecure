@@ -2,16 +2,16 @@
 
 "use client";
 
-
 // Define the LoginInfo interface
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
-import MatrixService from "@/services/MatrixService";
 import { toast } from "react-hot-toast";
 import { Card, CardBody, CardHeader } from "@nextui-org/card";
 import { Button, Divider, Input } from "@nextui-org/react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { Link } from "@nextui-org/link";
+
+import MatrixService from "@/services/MatrixService";
 
 interface LoginInfo {
   username: string;
@@ -21,11 +21,14 @@ interface LoginInfo {
 export default function LoginForm() {
   const router = useRouter();
   const [isVisible, setIsVisible] = useState(false);
-  const [loginInfo, setLoginInfo] = useState({
+  const [loginInfo, setLoginInfo] = useState<LoginInfo>({
     username: "",
     password: "",
   });
-  const [message, setMessage] = useState("");
+  // Removed the 'message' state as it's unused. Alternatively, see the optional usage below.
+
+  // Optional: If you want to display the message in the UI, uncomment the following line
+  // const [message, setMessage] = useState("");
 
   const toggleVisibility = () => setIsVisible(!isVisible);
 
@@ -44,7 +47,8 @@ export default function LoginForm() {
       router.push("/chat"); // Redirect to dashboard after login
     } catch (error: any) {
       toast.error(error.message || "Login failed. Please try again.");
-      setMessage(`Login failed: ${error.message}`);
+      // Optional: If using the message state, uncomment the following line
+      // setMessage(`Login failed: ${error.message}`);
     }
   };
 
@@ -106,9 +110,15 @@ export default function LoginForm() {
               Login
             </Button>
           </form>
+          {/* Optional: If using the message state, uncomment the following block */}
+          {/* {message && (
+            <div className="text-red-500 text-sm mt-2">
+              {message}
+            </div>
+          )} */}
           <div className="w-full flex flex-row justify-end">
             <Link className="!text-sm text-indigo-500" href="/register">
-              Don't have an account?
+              Don&apos;t have an account?
             </Link>
           </div>
         </CardBody>
