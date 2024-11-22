@@ -39,7 +39,6 @@ class MatrixService {
     this.matrixClient.startClient();
 
     await new Promise((resolve) => {
-      // @ts-ignore
       this.matrixClient!.once("sync", (state) => {
         if (state === "PREPARED") {
           resolve(true);
@@ -171,7 +170,6 @@ class MatrixService {
   async createRoom(roomName: string): Promise<string> {
     try {
       const response = await this.getClient().createRoom({
-        // @ts-ignore
         visibility: "private",
         name: roomName,
       });
@@ -206,49 +204,6 @@ class MatrixService {
         });
       } else {
         throw new Error("Listing rooms failed: Unknown error");
-      }
-    }
-  }
-
-  /**
-   * Join a room by ID or alias.
-   * @param roomIdOrAlias - The room ID or alias.
-   * @returns The room ID of the joined room.
-   */
-  async joinRoom(roomIdOrAlias: string): Promise<string> {
-    try {
-      const room = await this.getClient().joinRoom(roomIdOrAlias);
-
-      return room.roomId;
-    } catch (error) {
-      if (error instanceof Error) {
-        const parsedError = MatrixErrorParser.parse(error.toString());
-
-        throw new Error(`Joining room failed: ${parsedError?.message}`, {
-          cause: parsedError,
-        });
-      } else {
-        throw new Error("Joining room failed: Unknown error");
-      }
-    }
-  }
-
-  /**
-   * Leave a room.
-   * @param roomId - The ID of the room to leave.
-   */
-  async leaveRoom(roomId: string): Promise<void> {
-    try {
-      await this.getClient().leave(roomId);
-    } catch (error) {
-      if (error instanceof Error) {
-        const parsedError = MatrixErrorParser.parse(error.toString());
-
-        throw new Error(`Leaving room failed: ${parsedError?.message}`, {
-          cause: parsedError,
-        });
-      } else {
-        throw new Error("Leaving room failed: Unknown error");
       }
     }
   }
@@ -291,6 +246,32 @@ class MatrixService {
   }
 
   /**
+   * Get an existing direct room with a user, if it exists.
+   * @param userId - The user ID to check.
+   * @returns The room object if exists; otherwise, null.
+   */
+  public getDirectRoomWithUser(userId: string): sdk.Room | null {
+    const client = this.getClient();
+    const rooms = client.getRooms();
+
+    // Iterate through all rooms to find a direct room with the user
+    for (const room of rooms) {
+      const isDirect = room.currentState.getStateEvents("m.room.member").length === 2;
+      const roomMembers = room.getJoinedMembers().map((member) => member.userId);
+
+      if (
+        isDirect &&
+        roomMembers.includes(userId) &&
+        roomMembers.includes(this.getCurrentUserId())
+      ) {
+        return room;
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Start a direct message with a user.
    * @param userId - The user ID to message.
    * @returns The room ID of the direct message.
@@ -299,26 +280,12 @@ class MatrixService {
     try {
       const existingRoom = this.getDirectRoomWithUser(userId);
       if (existingRoom) {
-        // Ensure the user is joined to the room
-        if (existingRoom.getMyMembership() !== "join") {
-          await this.getClient().joinRoom(existingRoom.roomId);
-        }
         return existingRoom.roomId;
       }
 
       const response = await this.getClient().createRoom({
         is_direct: true,
         invite: [userId],
-      });
-
-      // Wait until the room appears in the client's room list
-      await new Promise((resolve) => {
-        // @ts-ignore
-        this.getClient().once("Room", (room) => {
-          if (room.roomId === response.room_id) {
-            resolve(true);
-          }
-        });
       });
 
       return response.room_id;
@@ -332,96 +299,6 @@ class MatrixService {
         );
       } else {
         throw new Error("Starting direct message failed: Unknown error");
-      }
-    }
-  }
-
-  /**
-   * Get an existing direct room with a user, if it exists.
-   * @param userId - The user ID to check.
-   * @returns The room object if exists; otherwise, null.
-   */
-  public getDirectRoomWithUser(userId: string): sdk.Room | null {
-    const client = this.getClient();
-    const directEvent = client.getAccountData("m.direct");
-
-    if (directEvent) {
-      const directRoomsMap = directEvent.getContent();
-
-      if (directRoomsMap[userId]) {
-        for (const roomId of directRoomsMap[userId]) {
-          const room = client.getRoom(roomId);
-          if (room && room.getMyMembership() === "join") {
-            return room;
-          }
-        }
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Send a message to a room.
-   * @param roomId - The ID of the room.
-   * @param message - The message content.
-   */
-  async sendMessage(roomId: string, message: string): Promise<void> {
-    try {
-      const room = this.getClient().getRoom(roomId);
-      if (!room || room.getMyMembership() !== "join") {
-        await this.getClient().joinRoom(roomId);
-      }
-
-      const txnId = `m${new Date().getTime()}`;
-
-      // @ts-ignore
-      await this.getClient().sendEvent(
-        roomId,
-        "m.room.message",
-        {
-          body: message,
-          msgtype: "m.text",
-        },
-        txnId,
-      );
-    } catch (error) {
-      if (error instanceof Error) {
-        const parsedError = MatrixErrorParser.parse(error.toString());
-
-        throw new Error(`Sending message failed: ${parsedError?.message}`, {
-          cause: parsedError,
-        });
-      } else {
-        throw new Error("Sending message failed: Unknown error");
-      }
-    }
-  }
-
-  /**
-   * Retrieve messages from a room.
-   * @param roomId - The ID of the room.
-   * @returns An array of message contents.
-   */
-  getMessages(roomId: string): string[] {
-    try {
-      const room = this.getClient().getRoom(roomId);
-
-      if (!room) {
-        throw new Error("Room not found.");
-      }
-
-      return room.timeline
-        .filter((event) => event.getType() === "m.room.message")
-        .map((event) => `${event.getSender()}: ${event.getContent().body}`);
-    } catch (error) {
-      if (error instanceof Error) {
-        const parsedError = MatrixErrorParser.parse(error.toString());
-
-        throw new Error(`Retrieving messages failed: ${parsedError?.message}`, {
-          cause: parsedError,
-        });
-      } else {
-        throw new Error("Retrieving messages failed: Unknown error");
       }
     }
   }
@@ -469,10 +346,45 @@ class MatrixService {
   }
 
   /**
+   * Send a message to a room.
+   * @param roomId - The ID of the room.
+   * @param message - The message content.
+   */
+  async sendMessage(roomId: string, message: string): Promise<void> {
+    try {
+      const room = this.getClient().getRoom(roomId);
+      if (!room || room.getMyMembership() !== "join") {
+        await this.getClient().joinRoom(roomId);
+      }
+
+      const txnId = `m${new Date().getTime()}`;
+
+      await this.getClient().sendEvent(
+        roomId,
+        "m.room.message",
+        {
+          body: message,
+          msgtype: "m.text",
+        },
+        txnId,
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+
+        throw new Error(`Sending message failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
+      } else {
+        throw new Error("Sending message failed: Unknown error");
+      }
+    }
+  }
+
+  /**
    * Automatically accept invitations to rooms.
    */
   public enableAutoJoin() {
-    // @ts-ignore
     this.getClient().on("RoomMember.membership", (event, member) => {
       if (member.membership === "invite" && member.userId === this.userId) {
         this.getClient()

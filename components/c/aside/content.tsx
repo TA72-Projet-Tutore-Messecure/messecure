@@ -30,9 +30,16 @@ export const CAsideContent: React.FC<CAsideContentProps> = ({
 
   const handleStartDM = async (userId: string) => {
     try {
-      const roomId = await MatrixService.startDirectMessage(userId);
-      await refreshRooms();
+      // Clear the search term
       setSearchTerm("");
+
+      // Start direct message (will return existing room if it exists)
+      const roomId = await MatrixService.startDirectMessage(userId);
+
+      // Refresh rooms
+      await refreshRooms();
+
+      // Select the room
       selectRoom(roomId);
     } catch (error) {
       console.error(error);
@@ -44,6 +51,7 @@ export const CAsideContent: React.FC<CAsideContentProps> = ({
     try {
       await MatrixService.acceptInvitation(roomId);
       await refreshRooms();
+      selectRoom(roomId);
     } catch (error) {
       console.error(error);
       alert("Failed to accept invitation");
@@ -54,6 +62,11 @@ export const CAsideContent: React.FC<CAsideContentProps> = ({
     try {
       await MatrixService.declineInvitation(roomId);
       await refreshRooms();
+
+      // If the declined room was selected, deselect it
+      if (selectedRoom?.roomId === roomId) {
+        selectRoom(null);
+      }
     } catch (error) {
       console.error(error);
       alert("Failed to decline invitation");
@@ -86,7 +99,7 @@ export const CAsideContent: React.FC<CAsideContentProps> = ({
             room={room}
             onClick={() => {
               if (room.getMyMembership() === "invite") {
-                handleAcceptInvitation(room.roomId);
+                // Do nothing on click; user must accept or decline
               } else {
                 selectRoom(room.roomId);
               }

@@ -6,7 +6,7 @@ import { Avatar } from "@nextui-org/react";
 import Ripples from "react-ripples";
 import React from "react";
 import { Room } from "matrix-js-sdk";
-import { FaCheck, FaTrash } from "react-icons/fa";
+import { FaCheck, FaTrash } from "react-icons/fa"; // Ensure you have these icons
 
 interface CAsideConversationProps {
   room: Room;
@@ -30,16 +30,13 @@ export const CAsideConversation: React.FC<CAsideConversationProps> = ({
   const membership = room.getMyMembership();
 
   return (
-    // @ts-ignore
-    <Ripples
+    <div
       className={`w-full max-w-sm py-2 px-3 flex flex-row gap-3 items-center rounded-xl cursor-pointer flex-shrink-0
                        ${
         active
           ? "bg-[#3390ec] dark:bg-[#8472dc]"
           : "hover:bg-[#f4f4f5] dark:hover:bg-[#2c2c2c]"
       }`}
-      color={"rgba(0, 0, 0, 0.1)"}
-      during={1400}
       onClick={onClick}
     >
       <Avatar
@@ -80,7 +77,7 @@ export const CAsideConversation: React.FC<CAsideConversationProps> = ({
               if (onAccept) onAccept();
             }}
           >
-            <FaCheck />
+            <FaCheck className="w-5 h-5" />
           </button>
           <button
             className="text-red-500 hover:text-red-700"
@@ -89,10 +86,10 @@ export const CAsideConversation: React.FC<CAsideConversationProps> = ({
               if (onDecline) onDecline();
             }}
           >
-            <FaTrash />
+            <FaTrash className="w-5 h-5" />
           </button>
         </div>
       )}
-    </Ripples>
+    </div>
   );
 };
