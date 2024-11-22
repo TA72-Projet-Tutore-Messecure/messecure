@@ -43,8 +43,8 @@ const isMessageEvent = (event: MatrixEvent): boolean => {
 };
 
 export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+                                                                          children,
+                                                                        }) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [messages, setMessages] = useState<MatrixEvent[]>([]);
@@ -55,7 +55,7 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
    * and sorting them by their last active timestamp.
    */
   const refreshRooms = useCallback(() => {
-    const allRooms = MatrixService.listRooms();
+    const allRooms = MatrixService.getRooms(); // Updated method name
 
     // Sort rooms by last active timestamp (most recent first)
     allRooms.sort(

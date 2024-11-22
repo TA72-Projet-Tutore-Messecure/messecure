@@ -18,7 +18,17 @@ import { CAsideSearch } from "@/components/c/aside/search";
 import MatrixService from "@/services/MatrixService";
 import { useMatrix } from "@/context/MatrixContext";
 
-export const CAsideHeader = () => {
+interface CAsideHeaderProps {
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  setSearchResults: (results: any[]) => void;
+}
+
+export const CAsideHeader: React.FC<CAsideHeaderProps> = ({
+                                                            searchTerm,
+                                                            setSearchTerm,
+                                                            setSearchResults,
+                                                          }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [roomName, setRoomName] = useState("");
   const { refreshRooms, selectRoom } = useMatrix();
@@ -33,7 +43,7 @@ export const CAsideHeader = () => {
         await refreshRooms();
         selectRoom(roomId); // Automatically select the new room
       } catch (error) {
-        //console.error(error);
+        console.error(error);
         alert("Failed to create room");
       }
     }
@@ -43,7 +53,11 @@ export const CAsideHeader = () => {
     <>
       <div className="w-full flex flex-row justify-between items-center gap-2 py-2 px-2">
         <CAsideBurger />
-        <CAsideSearch />
+        <CAsideSearch
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          setSearchResults={setSearchResults}
+        />
         <Button
           className="bg-green-500 text-white"
           onClick={() => setIsModalOpen(true)}

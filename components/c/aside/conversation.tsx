@@ -6,32 +6,38 @@ import { Avatar } from "@nextui-org/react";
 import Ripples from "react-ripples";
 import React from "react";
 import { Room } from "matrix-js-sdk";
+import { FaCheck, FaTrash } from "react-icons/fa";
 
 interface CAsideConversationProps {
   room: Room;
   active: boolean;
   onClick: () => void;
+  onAccept?: () => void;
+  onDecline?: () => void;
 }
 
 export const CAsideConversation: React.FC<CAsideConversationProps> = ({
-  room,
-  active,
-  onClick,
-}) => {
+                                                                        room,
+                                                                        active,
+                                                                        onClick,
+                                                                        onAccept,
+                                                                        onDecline,
+                                                                      }) => {
   const roomName = room.name || room.roomId;
   const lastEvent = room.timeline[room.timeline.length - 1];
   const lastMessage = lastEvent?.getContent()?.body || "";
   const lastTimestamp = lastEvent?.getDate()?.toLocaleTimeString() || "";
+  const membership = room.getMyMembership();
 
   return (
     // @ts-ignore
     <Ripples
       className={`w-full max-w-sm py-2 px-3 flex flex-row gap-3 items-center rounded-xl cursor-pointer flex-shrink-0
-                   ${
-                     active
-                       ? "bg-[#3390ec] dark:bg-[#8472dc]"
-                       : "hover:bg-[#f4f4f5] dark:hover:bg-[#2c2c2c]"
-                   }`}
+                       ${
+        active
+          ? "bg-[#3390ec] dark:bg-[#8472dc]"
+          : "hover:bg-[#f4f4f5] dark:hover:bg-[#2c2c2c]"
+      }`}
       color={"rgba(0, 0, 0, 0.1)"}
       during={1400}
       onClick={onClick}
@@ -65,6 +71,28 @@ export const CAsideConversation: React.FC<CAsideConversationProps> = ({
           {lastMessage}
         </span>
       </div>
+      {membership === "invite" && (
+        <div className="flex items-center space-x-2">
+          <button
+            className="text-green-500 hover:text-green-700"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onAccept) onAccept();
+            }}
+          >
+            <FaCheck />
+          </button>
+          <button
+            className="text-red-500 hover:text-red-700"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onDecline) onDecline();
+            }}
+          >
+            <FaTrash />
+          </button>
+        </div>
+      )}
     </Ripples>
   );
 };

@@ -5,10 +5,60 @@
 import React from "react";
 
 import { CAsideConversation } from "@/components/c/aside/conversation";
+import { CAsideUser } from "@/components/c/aside/user";
 import { useMatrix } from "@/context/MatrixContext";
+import MatrixService from "@/services/MatrixService";
 
-export const CAsideContent: React.FC = () => {
-  const { rooms, selectedRoom, selectRoom, clientReady } = useMatrix();
+interface CAsideContentProps {
+  searchTerm: string;
+  searchResults: any[];
+  setSearchTerm: (term: string) => void;
+}
+
+export const CAsideContent: React.FC<CAsideContentProps> = ({
+                                                              searchTerm,
+                                                              searchResults,
+                                                              setSearchTerm,
+                                                            }) => {
+  const {
+    rooms,
+    selectedRoom,
+    selectRoom,
+    clientReady,
+    refreshRooms,
+  } = useMatrix();
+
+  const handleStartDM = async (userId: string) => {
+    try {
+      const roomId = await MatrixService.startDirectMessage(userId);
+      await refreshRooms();
+      setSearchTerm("");
+      selectRoom(roomId);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to start direct message");
+    }
+  };
+
+  const handleAcceptInvitation = async (roomId: string) => {
+    try {
+      await MatrixService.acceptInvitation(roomId);
+      await refreshRooms();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to accept invitation");
+    }
+  };
+
+  const handleDeclineInvitation = async (roomId: string) => {
+    try {
+      await MatrixService.declineInvitation(roomId);
+      await refreshRooms();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to decline invitation");
+    }
+  };
 
   if (!clientReady) {
     return (
@@ -20,14 +70,32 @@ export const CAsideContent: React.FC = () => {
 
   return (
     <div className="w-full max-w-full flex flex-col items-center py-2 px-2 overflow-y-auto">
-      {rooms.map((room) => (
-        <CAsideConversation
-          key={room.roomId}
-          active={selectedRoom?.roomId === room.roomId}
-          room={room}
-          onClick={() => selectRoom(room.roomId)}
-        />
-      ))}
+      {searchTerm.trim() !== "" && searchResults.length > 0 ? (
+        searchResults.map((user) => (
+          <CAsideUser
+            key={user.user_id}
+            user={user}
+            onClick={() => handleStartDM(user.user_id)}
+          />
+        ))
+      ) : (
+        rooms.map((room) => (
+          <CAsideConversation
+            key={room.roomId}
+            active={selectedRoom?.roomId === room.roomId}
+            room={room}
+            onClick={() => {
+              if (room.getMyMembership() === "invite") {
+                handleAcceptInvitation(room.roomId);
+              } else {
+                selectRoom(room.roomId);
+              }
+            }}
+            onAccept={() => handleAcceptInvitation(room.roomId)}
+            onDecline={() => handleDeclineInvitation(room.roomId)}
+          />
+        ))
+      )}
     </div>
   );
 };
