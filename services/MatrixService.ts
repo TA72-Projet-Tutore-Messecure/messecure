@@ -3,6 +3,7 @@
 "use client";
 
 import * as sdk from "matrix-js-sdk/lib/browser-index";
+
 import { MatrixErrorParser } from "@/lib/matrixErrorParser";
 
 class MatrixService {
@@ -39,6 +40,7 @@ class MatrixService {
     this.matrixClient.startClient();
 
     await new Promise((resolve) => {
+      // @ts-ignore
       this.matrixClient!.once("sync", (state) => {
         if (state === "PREPARED") {
           resolve(true);
@@ -51,6 +53,7 @@ class MatrixService {
     if (!this.userId) {
       throw new Error("User ID is not available.");
     }
+
     return this.userId;
   }
 
@@ -74,7 +77,8 @@ class MatrixService {
   async register(username: string, password: string): Promise<void> {
     try {
       this.matrixClient = sdk.createClient({
-        baseUrl: process.env.NEXT_PUBLIC_MATRIX_SERVER || "http://localhost:8008",
+        baseUrl:
+          process.env.NEXT_PUBLIC_MATRIX_SERVER || "http://localhost:8008",
       });
       await this.matrixClient.registerRequest({
         username,
@@ -102,7 +106,8 @@ class MatrixService {
   async login(username: string, password: string): Promise<void> {
     try {
       this.matrixClient = sdk.createClient({
-        baseUrl: process.env.NEXT_PUBLIC_MATRIX_SERVER || "http://localhost:8008",
+        baseUrl:
+          process.env.NEXT_PUBLIC_MATRIX_SERVER || "http://localhost:8008",
       });
       const response = await this.matrixClient.login("m.login.password", {
         user: username,
@@ -170,6 +175,7 @@ class MatrixService {
   async createRoom(roomName: string): Promise<string> {
     try {
       const response = await this.getClient().createRoom({
+        // @ts-ignore
         visibility: "private",
         name: roomName,
       });
@@ -223,6 +229,7 @@ class MatrixService {
 
       if (response.results && response.results.length > 0) {
         const currentUserId = this.getCurrentUserId();
+
         return response.results
           .filter((user) => user.user_id !== currentUserId) // Exclude current user
           .map((user) => ({
@@ -256,8 +263,11 @@ class MatrixService {
 
     // Iterate through all rooms to find a direct room with the user
     for (const room of rooms) {
-      const isDirect = room.currentState.getStateEvents("m.room.member").length === 2;
-      const roomMembers = room.getJoinedMembers().map((member) => member.userId);
+      const isDirect =
+        room.currentState.getStateEvents("m.room.member").length === 2;
+      const roomMembers = room
+        .getJoinedMembers()
+        .map((member) => member.userId);
 
       if (
         isDirect &&
@@ -279,6 +289,7 @@ class MatrixService {
   async startDirectMessage(userId: string): Promise<string> {
     try {
       const existingRoom = this.getDirectRoomWithUser(userId);
+
       if (existingRoom) {
         return existingRoom.roomId;
       }
@@ -353,12 +364,14 @@ class MatrixService {
   async sendMessage(roomId: string, message: string): Promise<void> {
     try {
       const room = this.getClient().getRoom(roomId);
+
       if (!room || room.getMyMembership() !== "join") {
         await this.getClient().joinRoom(roomId);
       }
 
       const txnId = `m${new Date().getTime()}`;
 
+      // @ts-ignore
       await this.getClient().sendEvent(
         roomId,
         "m.room.message",
@@ -382,18 +395,54 @@ class MatrixService {
   }
 
   /**
-   * Automatically accept invitations to rooms.
+   * Delete a room for both users.
+   * @param roomId - The ID of the room to delete.
    */
-  public enableAutoJoin() {
-    this.getClient().on("RoomMember.membership", (event, member) => {
-      if (member.membership === "invite" && member.userId === this.userId) {
-        this.getClient()
-          .joinRoom(member.roomId)
-          .catch((err) => {
-            console.error(`Auto-join failed for room ${member.roomId}:`, err);
-          });
+  public async deleteRoom(roomId: string): Promise<void> {
+    try {
+      const client = this.getClient();
+      const room = client.getRoom(roomId);
+
+      if (!room) {
+        throw new Error("Room not found");
       }
-    });
+
+      const myUserId = this.getCurrentUserId();
+
+      // Get all members in the room
+      const members = room.getJoinedMembers();
+
+      // Leave the room
+      await client.leave(roomId);
+
+      // Kick all other users from the room
+      for (const member of members) {
+        if (member.userId !== myUserId) {
+          try {
+            await client.kick(roomId, member.userId, "Room deleted");
+          } catch (error) {
+            // Ignore errors if user already left
+          }
+        }
+      }
+
+      // Optionally, forget the room to remove it from the room list
+      await client.forget(roomId);
+
+      // Emit an event to update the room list in the application
+      // @ts-ignore
+      client.emit("deleteRoom", roomId);
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+
+        throw new Error(`Deleting room failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
+      } else {
+        throw new Error("Deleting room failed: Unknown error");
+      }
+    }
   }
 }
 

@@ -11,6 +11,8 @@ scripts/*
 node_modules
 components/magicui/**/*
 components/icons.tsx
+context/*
+app/(providers)/*
 coverage
 .next
 build

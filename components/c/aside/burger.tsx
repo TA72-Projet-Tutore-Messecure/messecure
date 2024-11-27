@@ -82,7 +82,7 @@ export const CAsideBurger = () => {
             isReadOnly
             className="text-center text-xs text-default-900 p-0"
           >
-            Test
+            Messecure v1.0.0
           </DropdownItem>
         </DropdownSection>
       </DropdownMenu>

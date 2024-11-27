@@ -10,6 +10,7 @@ import React, {
   useCallback,
 } from "react";
 import { Room, MatrixEvent, SyncState } from "matrix-js-sdk";
+import { toast } from "react-hot-toast";
 
 import MatrixService from "@/services/MatrixService";
 
@@ -45,8 +46,8 @@ const isMessageEvent = (event: MatrixEvent): boolean => {
 };
 
 export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
-                                                                          children,
-                                                                        }) => {
+  children,
+}) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [messages, setMessages] = useState<MatrixEvent[]>([]);
@@ -78,18 +79,21 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Check if it's a direct message room
       const isDirect = room.getJoinedMemberCount() <= 2;
+
       if (isDirect) {
         const members = room.getMembers();
         const otherMembers = members.filter(
-          (member) => member.userId !== myUserId
+          (member) => member.userId !== myUserId,
         );
 
         // Check the membership status of the other user
         if (otherMembers.length === 1) {
           const otherMember = otherMembers[0];
+
           if (otherMember.membership === "leave") {
             // The other user has declined the invitation or left the DM
             roomsToLeave.push(room.roomId);
+
             return false; // Exclude this room from the rooms list
           } else if (
             otherMember.membership === "invite" ||
@@ -115,7 +119,7 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         await client.leave(roomId);
       } catch (error) {
-        console.error(`Failed to leave room ${roomId}:`, error);
+        toast.error(`Failed to leave room ${roomId}`);
       }
     }
 
@@ -125,11 +129,12 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
     // Filter and sort again after leaving
     allRooms = allRooms.filter((room) => {
       const myMembership = room.getMyMembership();
+
       return myMembership === "join" || myMembership === "invite";
     });
 
     allRooms.sort(
-      (a, b) => b.getLastActiveTimestamp() - a.getLastActiveTimestamp()
+      (a, b) => b.getLastActiveTimestamp() - a.getLastActiveTimestamp(),
     );
 
     setRooms(allRooms);
@@ -144,6 +149,7 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
     if (roomId === null) {
       setSelectedRoom(null);
       setMessages([]);
+
       return;
     }
 
@@ -174,7 +180,7 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
         await MatrixService.sendMessage(selectedRoom.roomId, message);
       }
     },
-    [selectedRoom]
+    [selectedRoom],
   );
 
   /**
@@ -201,10 +207,12 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         };
 
+        // @ts-ignore
         client.on("sync", onSync);
 
         // Cleanup listener on unmount
         return () => {
+          // @ts-ignore
           client.removeListener("sync", onSync);
         };
       }
@@ -230,10 +238,12 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     };
 
+    // @ts-ignore
     client.on("Room.timeline", onRoomTimeline);
 
     // Cleanup listener on unmount or when dependencies change
     return () => {
+      // @ts-ignore
       client.removeListener("Room.timeline", onRoomTimeline);
     };
   }, [selectedRoom, clientReady]);
@@ -253,9 +263,11 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
       refreshRooms();
     };
 
+    // @ts-ignore
     client.on("RoomMember.membership", onRoomMember);
 
     return () => {
+      // @ts-ignore
       client.removeListener("RoomMember.membership", onRoomMember);
     };
   }, [clientReady, refreshRooms]);

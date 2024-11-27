@@ -3,6 +3,7 @@
 "use client";
 
 import React from "react";
+import { toast } from "react-hot-toast";
 
 import { CAsideConversation } from "@/components/c/aside/conversation";
 import { CAsideUser } from "@/components/c/aside/user";
@@ -16,17 +17,12 @@ interface CAsideContentProps {
 }
 
 export const CAsideContent: React.FC<CAsideContentProps> = ({
-                                                              searchTerm,
-                                                              searchResults,
-                                                              setSearchTerm,
-                                                            }) => {
-  const {
-    rooms,
-    selectedRoom,
-    selectRoom,
-    clientReady,
-    refreshRooms,
-  } = useMatrix();
+  searchTerm,
+  searchResults,
+  setSearchTerm,
+}) => {
+  const { rooms, selectedRoom, selectRoom, clientReady, refreshRooms } =
+    useMatrix();
 
   const handleStartDM = async (userId: string) => {
     try {
@@ -42,8 +38,7 @@ export const CAsideContent: React.FC<CAsideContentProps> = ({
       // Select the room
       selectRoom(roomId);
     } catch (error) {
-      console.error(error);
-      alert("Failed to start direct message");
+      toast.error("Failed to start direct message");
     }
   };
 
@@ -53,8 +48,7 @@ export const CAsideContent: React.FC<CAsideContentProps> = ({
       await refreshRooms();
       selectRoom(roomId);
     } catch (error) {
-      console.error(error);
-      alert("Failed to accept invitation");
+      toast.error("Failed to accept invitation");
     }
   };
 
@@ -68,8 +62,7 @@ export const CAsideContent: React.FC<CAsideContentProps> = ({
         selectRoom(null);
       }
     } catch (error) {
-      console.error(error);
-      alert("Failed to decline invitation");
+      toast.error("Failed to decline invitation");
     }
   };
 
@@ -83,32 +76,30 @@ export const CAsideContent: React.FC<CAsideContentProps> = ({
 
   return (
     <div className="w-full max-w-full flex flex-col items-center py-2 px-2 overflow-y-auto">
-      {searchTerm.trim() !== "" && searchResults.length > 0 ? (
-        searchResults.map((user) => (
-          <CAsideUser
-            key={user.user_id}
-            user={user}
-            onClick={() => handleStartDM(user.user_id)}
-          />
-        ))
-      ) : (
-        rooms.map((room) => (
-          <CAsideConversation
-            key={room.roomId}
-            active={selectedRoom?.roomId === room.roomId}
-            room={room}
-            onClick={() => {
-              if (room.getMyMembership() === "invite") {
-                // Do nothing on click; user must accept or decline
-              } else {
-                selectRoom(room.roomId);
-              }
-            }}
-            onAccept={() => handleAcceptInvitation(room.roomId)}
-            onDecline={() => handleDeclineInvitation(room.roomId)}
-          />
-        ))
-      )}
+      {searchTerm.trim() !== "" && searchResults.length > 0
+        ? searchResults.map((user) => (
+            <CAsideUser
+              key={user.user_id}
+              user={user}
+              onClick={() => handleStartDM(user.user_id)}
+            />
+          ))
+        : rooms.map((room) => (
+            <CAsideConversation
+              key={room.roomId}
+              active={selectedRoom?.roomId === room.roomId}
+              room={room}
+              onAccept={() => handleAcceptInvitation(room.roomId)}
+              onClick={() => {
+                if (room.getMyMembership() === "invite") {
+                  // Do nothing on click; user must accept or decline
+                } else {
+                  selectRoom(room.roomId);
+                }
+              }}
+              onDecline={() => handleDeclineInvitation(room.roomId)}
+            />
+          ))}
     </div>
   );
 };

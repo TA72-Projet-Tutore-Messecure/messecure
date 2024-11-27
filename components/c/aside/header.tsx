@@ -25,10 +25,10 @@ interface CAsideHeaderProps {
 }
 
 export const CAsideHeader: React.FC<CAsideHeaderProps> = ({
-                                                            searchTerm,
-                                                            setSearchTerm,
-                                                            setSearchResults,
-                                                          }) => {
+  searchTerm,
+  setSearchTerm,
+  setSearchResults,
+}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [roomName, setRoomName] = useState("");
   const { refreshRooms, selectRoom } = useMatrix();
@@ -43,7 +43,6 @@ export const CAsideHeader: React.FC<CAsideHeaderProps> = ({
         await refreshRooms();
         selectRoom(roomId); // Automatically select the new room
       } catch (error) {
-        console.error(error);
         alert("Failed to create room");
       }
     }
@@ -55,8 +54,8 @@ export const CAsideHeader: React.FC<CAsideHeaderProps> = ({
         <CAsideBurger />
         <CAsideSearch
           searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
           setSearchResults={setSearchResults}
+          setSearchTerm={setSearchTerm}
         />
         <Button
           className="bg-green-500 text-white"

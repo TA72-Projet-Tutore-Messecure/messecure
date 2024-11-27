@@ -4,6 +4,8 @@
 
 import React, { useEffect } from "react";
 import { Input } from "@nextui-org/input";
+import { toast } from "react-hot-toast";
+
 import { SearchIcon } from "@/components/icons";
 import MatrixService from "@/services/MatrixService";
 
@@ -14,18 +16,19 @@ interface CAsideSearchProps {
 }
 
 export const CAsideSearch: React.FC<CAsideSearchProps> = ({
-                                                            searchTerm,
-                                                            setSearchTerm,
-                                                            setSearchResults,
-                                                          }) => {
+  searchTerm,
+  setSearchTerm,
+  setSearchResults,
+}) => {
   useEffect(() => {
     const handleSearch = async () => {
       if (searchTerm.trim() !== "") {
         try {
           const users = await MatrixService.searchUsers(searchTerm.trim());
+
           setSearchResults(users);
-        } catch (error) {
-          console.error(error);
+        } catch (error: any) {
+          toast.error(error.message);
         }
       } else {
         setSearchResults([]);
