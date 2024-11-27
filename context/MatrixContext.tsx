@@ -1,3 +1,5 @@
+// context/MatrixContext.tsx
+
 "use client";
 
 import React, {
@@ -8,13 +10,14 @@ import React, {
   useCallback,
 } from "react";
 import { Room, MatrixEvent, SyncState } from "matrix-js-sdk";
+import { toast } from "react-hot-toast";
 
 import MatrixService from "@/services/MatrixService";
 
 interface MatrixContextProps {
   rooms: Room[];
   selectedRoom: Room | null;
-  selectRoom: (roomId: string) => void;
+  selectRoom: (roomId: string | null) => void;
   messages: MatrixEvent[];
   sendMessage: (message: string) => Promise<void>;
   refreshRooms: () => void;
@@ -53,49 +56,119 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
   /**
    * Refreshes the list of rooms by fetching them from the Matrix client
    * and sorting them by their last active timestamp.
+   * Also removes any direct message rooms where the invitation was declined.
    */
-  const refreshRooms = useCallback(() => {
-    const allRooms = MatrixService.listRooms();
+  const refreshRooms = useCallback(async () => {
+    const client = MatrixService.getClient();
+    const myUserId = client.getUserId();
+    let allRooms = client.getRooms();
 
-    // Sort rooms by last active timestamp (most recent first)
+    // Rooms to leave
+    const roomsToLeave: string[] = [];
+
+    // Filter rooms and identify rooms to leave
+    allRooms = allRooms.filter((room) => {
+      const myMembership = room.getMyMembership();
+      const isJoinedOrInvited =
+        myMembership === "join" || myMembership === "invite";
+
+      if (!isJoinedOrInvited) {
+        // Skip rooms where user is not joined or invited
+        return false;
+      }
+
+      // Check if it's a direct message room
+      const isDirect = room.getJoinedMemberCount() <= 2;
+
+      if (isDirect) {
+        const members = room.getMembers();
+        const otherMembers = members.filter(
+          (member) => member.userId !== myUserId,
+        );
+
+        // Check the membership status of the other user
+        if (otherMembers.length === 1) {
+          const otherMember = otherMembers[0];
+
+          if (otherMember.membership === "leave") {
+            // The other user has declined the invitation or left the DM
+            roomsToLeave.push(room.roomId);
+
+            return false; // Exclude this room from the rooms list
+          } else if (
+            otherMember.membership === "invite" ||
+            otherMember.membership === "join"
+          ) {
+            // The other user is still invited or has joined
+            return true; // Include this room
+          } else {
+            // Other memberships like "ban" or "knock", handle as needed
+            return true; // For now, include the room
+          }
+        } else {
+          // No other members or multiple members (group chat), include the room
+          return true;
+        }
+      }
+
+      return true; // Include this room
+    });
+
+    // Leave rooms where the invitation was declined
+    for (const roomId of roomsToLeave) {
+      try {
+        await client.leave(roomId);
+      } catch (error) {
+        toast.error(`Failed to leave room ${roomId}`);
+      }
+    }
+
+    // Refresh rooms after leaving
+    allRooms = client.getRooms();
+
+    // Filter and sort again after leaving
+    allRooms = allRooms.filter((room) => {
+      const myMembership = room.getMyMembership();
+
+      return myMembership === "join" || myMembership === "invite";
+    });
+
     allRooms.sort(
       (a, b) => b.getLastActiveTimestamp() - a.getLastActiveTimestamp(),
     );
 
     setRooms(allRooms);
-
-    // Automatically select the first room if none is selected
-    if (allRooms.length > 0 && !selectedRoom) {
-      const room = allRooms[0];
-
-      selectRoom(room.roomId);
-    }
-  }, [selectedRoom]);
+  }, []);
 
   /**
    * Selects a room by its ID and fetches its message timeline.
    * Filters out non-message events to prevent empty messages.
    * @param roomId - The ID of the room to select.
    */
-  const selectRoom = useCallback(
-    (roomId: string) => {
-      const room = rooms.find((r) => r.roomId === roomId) || null;
+  const selectRoom = useCallback((roomId: string | null) => {
+    if (roomId === null) {
+      setSelectedRoom(null);
+      setMessages([]);
 
-      setSelectedRoom(room);
-      if (room) {
-        // Fetch live timeline events and filter only message events
-        const timeline = room
-          .getLiveTimeline()
-          .getEvents()
-          .filter(isMessageEvent);
+      return;
+    }
 
-        setMessages(timeline);
-      } else {
-        setMessages([]);
-      }
-    },
-    [rooms],
-  );
+    // Get the room directly from the client
+    const room = MatrixService.getClient().getRoom(roomId) || null;
+
+    setSelectedRoom(room);
+    if (room) {
+      // Fetch live timeline events and filter only message events
+      const timeline = room
+        .getLiveTimeline()
+        .getEvents()
+        .filter(isMessageEvent);
+
+      setMessages(timeline);
+    } else {
+      setMessages([]);
+    }
+  }, []);
 
   /**
    * Sends a message to the currently selected room.
@@ -174,6 +247,30 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
       client.removeListener("Room.timeline", onRoomTimeline);
     };
   }, [selectedRoom, clientReady]);
+
+  /**
+   * Listens for changes in room memberships to refresh rooms.
+   */
+  useEffect(() => {
+    if (!clientReady) return;
+
+    const client = MatrixService.getClient();
+
+    /**
+     * Handler for membership changes.
+     */
+    const onRoomMember = () => {
+      refreshRooms();
+    };
+
+    // @ts-ignore
+    client.on("RoomMember.membership", onRoomMember);
+
+    return () => {
+      // @ts-ignore
+      client.removeListener("RoomMember.membership", onRoomMember);
+    };
+  }, [clientReady, refreshRooms]);
 
   return (
     <MatrixContext.Provider

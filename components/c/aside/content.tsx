@@ -3,12 +3,68 @@
 "use client";
 
 import React from "react";
+import { toast } from "react-hot-toast";
 
 import { CAsideConversation } from "@/components/c/aside/conversation";
+import { CAsideUser } from "@/components/c/aside/user";
 import { useMatrix } from "@/context/MatrixContext";
+import MatrixService from "@/services/MatrixService";
 
-export const CAsideContent: React.FC = () => {
-  const { rooms, selectedRoom, selectRoom, clientReady } = useMatrix();
+interface CAsideContentProps {
+  searchTerm: string;
+  searchResults: any[];
+  setSearchTerm: (term: string) => void;
+}
+
+export const CAsideContent: React.FC<CAsideContentProps> = ({
+  searchTerm,
+  searchResults,
+  setSearchTerm,
+}) => {
+  const { rooms, selectedRoom, selectRoom, clientReady, refreshRooms } =
+    useMatrix();
+
+  const handleStartDM = async (userId: string) => {
+    try {
+      // Clear the search term
+      setSearchTerm("");
+
+      // Start direct message (will return existing room if it exists)
+      const roomId = await MatrixService.startDirectMessage(userId);
+
+      // Refresh rooms
+      await refreshRooms();
+
+      // Select the room
+      selectRoom(roomId);
+    } catch (error) {
+      toast.error("Failed to start direct message");
+    }
+  };
+
+  const handleAcceptInvitation = async (roomId: string) => {
+    try {
+      await MatrixService.acceptInvitation(roomId);
+      await refreshRooms();
+      selectRoom(roomId);
+    } catch (error) {
+      toast.error("Failed to accept invitation");
+    }
+  };
+
+  const handleDeclineInvitation = async (roomId: string) => {
+    try {
+      await MatrixService.declineInvitation(roomId);
+      await refreshRooms();
+
+      // If the declined room was selected, deselect it
+      if (selectedRoom?.roomId === roomId) {
+        selectRoom(null);
+      }
+    } catch (error) {
+      toast.error("Failed to decline invitation");
+    }
+  };
 
   if (!clientReady) {
     return (
@@ -20,14 +76,30 @@ export const CAsideContent: React.FC = () => {
 
   return (
     <div className="w-full max-w-full flex flex-col items-center py-2 px-2 overflow-y-auto">
-      {rooms.map((room) => (
-        <CAsideConversation
-          key={room.roomId}
-          active={selectedRoom?.roomId === room.roomId}
-          room={room}
-          onClick={() => selectRoom(room.roomId)}
-        />
-      ))}
+      {searchTerm.trim() !== "" && searchResults.length > 0
+        ? searchResults.map((user) => (
+            <CAsideUser
+              key={user.user_id}
+              user={user}
+              onClick={() => handleStartDM(user.user_id)}
+            />
+          ))
+        : rooms.map((room) => (
+            <CAsideConversation
+              key={room.roomId}
+              active={selectedRoom?.roomId === room.roomId}
+              room={room}
+              onAccept={() => handleAcceptInvitation(room.roomId)}
+              onClick={() => {
+                if (room.getMyMembership() === "invite") {
+                  // Do nothing on click; user must accept or decline
+                } else {
+                  selectRoom(room.roomId);
+                }
+              }}
+              onDecline={() => handleDeclineInvitation(room.roomId)}
+            />
+          ))}
     </div>
   );
 };
