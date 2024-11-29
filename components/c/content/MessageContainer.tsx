@@ -188,6 +188,7 @@ export const MessageContainer: React.FC = () => {
         return (
           <BaseMessage
             key={event.getId()}
+            id={event.getId() ?? ""}
             message={message}
             status={status}
             target={target}

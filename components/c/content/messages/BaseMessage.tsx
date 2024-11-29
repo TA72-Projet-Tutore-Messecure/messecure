@@ -1,19 +1,24 @@
 import React from "react";
 import { CheckIcon } from "@nextui-org/shared-icons";
-import { CheckCheckIcon, Clock } from "lucide-react";
+import { CheckCheckIcon, Clock, Trash2Icon } from "lucide-react";
 
-import {
-  BaseMessageProps,
-  MessageStatus,
-  MessageTarget,
-} from "@/types/messages";
+import { BaseMessageProps, MessageStatus, MessageTarget } from "@/types/messages";
+import { useMatrix } from "@/context/MatrixContext";
 
 export const BaseMessage: React.FC<BaseMessageProps> = ({
+  id,
   time,
   target,
   status,
   message,
 }) => {
+  const { deleteMessage, selectedRoom } = useMatrix();
+
+  const handleDeletion = async ()=> {
+    if(id !== "" && selectedRoom) {
+      await deleteMessage(id);
+    }
+  };
   return (
     <div
       className={`w-full px-32 flex flex-row ${target === MessageTarget.SENDER ? "justify-end" : "justify-start"}`}
@@ -23,6 +28,7 @@ export const BaseMessage: React.FC<BaseMessageProps> = ({
       >
         <div className="message-content break-words">{message}</div>
         <div className="message-info w-full flex flex-row justify-end items-center gap-1">
+          <span><Trash2Icon className="hover:text-blue-600" onClick={handleDeletion}></Trash2Icon></span>
           <span
             className={`message-time ${target === MessageTarget.SENDER ? "text-[#60b75e] dark:text-[#aea7de]" : "text-[#47494c]"}  text-xs`}
           >

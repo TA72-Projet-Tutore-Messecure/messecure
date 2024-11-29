@@ -20,6 +20,7 @@ interface MatrixContextProps {
   selectRoom: (roomId: string | null) => void;
   messages: MatrixEvent[];
   sendMessage: (message: string) => Promise<void>;
+  deleteMessage: (id: string) => Promise<void>;
   refreshRooms: () => void;
   clientReady: boolean;
 }
@@ -184,6 +185,19 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   /**
+   * Deletes a message from the current room
+   * @param id - The message's id
+   */
+  const deleteMessage = useCallback(
+    async (id: string) => {
+      if(selectedRoom) {
+        await MatrixService.deleteMessage(selectedRoom.roomId, id);
+      }
+    },
+    [selectedRoom]
+  );
+
+  /**
    * Initializes the Matrix client and sets up event listeners.
    */
   useEffect(() => {
@@ -280,6 +294,7 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
         selectRoom,
         messages,
         sendMessage,
+        deleteMessage,
         refreshRooms,
         clientReady,
       }}
