@@ -394,6 +394,35 @@ class MatrixService {
     }
   }
 
+  async deleteMessage(roomId:string, messageId:string): Promise<void> {
+    try {
+      const room = this.getClient().getRoom(roomId);
+
+      if(!room || room.getMyMembership() !== "join") {
+        throw new Error("Unauthorized : room not joined.");
+      }
+
+      const txnId = `m${new Date().getTime()}`;
+
+      await this.getClient().redactEvent(
+        roomId,
+        messageId,
+        txnId,
+      );
+
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+
+        throw new Error(`Deleting message failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
+      } else {
+        throw new Error("Deleting message failed: Unknown error");
+      }
+    }
+  }
+
   /**
    * Delete a room for both users.
    * @param roomId - The ID of the room to delete.
