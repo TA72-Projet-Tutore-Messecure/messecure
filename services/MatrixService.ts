@@ -394,6 +394,15 @@ class MatrixService {
     }
   }
 
+
+  /**
+   * Deletes a message from a specified room.
+   *
+   * @param {string} roomId - The identifier of the room from which the message should be deleted.
+   * @param {string} messageId - The identifier of the message to be deleted.
+   * @return {Promise<void>} A promise that resolves when the message has been successfully deleted, or rejects if the operation fails.
+   * @throws {Error} If the room is not joined or if the deletion operation fails due to an unknown error.
+   */
   async deleteMessage(roomId:string, messageId:string): Promise<void> {
     try {
       const room = this.getClient().getRoom(roomId);
