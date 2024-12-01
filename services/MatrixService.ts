@@ -444,6 +444,35 @@ class MatrixService {
       }
     }
   }
+
+  /**
+   * Change the password of the current user.
+   * @param oldPassword - The old password.
+   * @param newPassword - The new password.
+   */
+  async changePassword(oldPassword: string, newPassword: string): Promise<void> {
+    const authDict = {
+      type: "m.login.password",
+      user: this.userId,
+      password: oldPassword
+    }
+
+    try {
+      if (this.matrixClient) {
+        await this.matrixClient.setPassword(authDict, newPassword);
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+
+        throw new Error(`Changing password failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
+      } else {
+        throw new Error("Changing password failed: Unknown error");
+      }
+    }
+  }
 }
 
 export default MatrixService.getInstance();
