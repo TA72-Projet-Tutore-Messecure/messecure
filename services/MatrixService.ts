@@ -444,6 +444,49 @@ class MatrixService {
       }
     }
   }
+
+  /**
+   * Invite a user to a room.
+   * @param roomId - The ID of the room.
+   * @param userId - The ID of the user to invite.
+   */
+  public async inviteUserToRoom(roomId: string, userId: string): Promise<void> {
+    try {
+      await this.getClient().invite(roomId, userId);
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+
+        throw new Error(`Inviting user failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
+      } else {
+        throw new Error("Inviting user failed: Unknown error");
+      }
+    }
+  }
+
+  /**
+   * Kick a user from a room.
+   * @param roomId - The ID of the room.
+   * @param userId - The ID of the user to kick.
+   * @param reason - The reason for kicking the user.
+   */
+  public async kickUserFromRoom(roomId: string, userId: string, reason: string): Promise<void> {
+    try {
+      await this.getClient().kick(roomId, userId, reason);
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+
+        throw new Error(`Kicking user failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
+      } else {
+        throw new Error("Kicking user failed: Unknown error");
+      }
+    }
+  }
 }
 
 export default MatrixService.getInstance();
