@@ -459,7 +459,7 @@ class MatrixService {
 
     try {
       if (this.matrixClient) {
-        await this.matrixClient.setPassword(authDict, newPassword);
+        await this.matrixClient.setPassword(authDict, newPassword, true);
       }
     } catch (error) {
       if (error instanceof Error) {
