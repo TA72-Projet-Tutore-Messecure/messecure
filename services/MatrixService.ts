@@ -487,6 +487,27 @@ class MatrixService {
       }
     }
   }
+
+  /**
+   * Deletes a message (redacts an event) in a room.
+   * @param roomId - The ID of the room.
+   * @param eventId - The ID of the event (message) to delete.
+   */
+  public async deleteMessage(roomId: string, eventId: string): Promise<void> {
+    try {
+      await this.getClient().redactEvent(roomId, eventId);
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+
+        throw new Error(`Deleting message failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
+      } else {
+        throw new Error("Deleting message failed: Unknown error");
+      }
+    }
+  }
 }
 
 export default MatrixService.getInstance();

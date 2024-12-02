@@ -53,9 +53,7 @@ export const MessageContainer: React.FC = () => {
       }
 
       const members = room.getMembers();
-      const otherMembers = members.filter(
-        (member) => member.userId !== myUserId
-      );
+      const otherMembers = members.filter((member) => member.userId !== myUserId);
 
       // Check if any of the other members have joined
       const otherUserHasJoined = otherMembers.some(
@@ -71,11 +69,8 @@ export const MessageContainer: React.FC = () => {
     // Function to update message statuses
     const updateMessageStatuses = () => {
       const newStatuses: { [eventId: string]: MessageStatus } = {};
-      const otherMembers = room
-        .getMembers()
-        .filter((m) => m.userId !== myUserId);
-      const otherUserId =
-        otherMembers.length > 0 ? otherMembers[0].userId : null;
+      const otherMembers = room.getMembers().filter((m) => m.userId !== myUserId);
+      const otherUserId = otherMembers.length > 0 ? otherMembers[0].userId : null;
 
       messages.forEach((event) => {
         if (event.getSender() === myUserId) {
@@ -84,19 +79,15 @@ export const MessageContainer: React.FC = () => {
             const readUpToEventId = room.getEventReadUpTo(otherUserId);
 
             if (isEventRead(event, readUpToEventId)) {
-              // @ts-ignore
               newStatuses[event.getId()!] = MessageStatus.READ;
             } else {
-              // @ts-ignore
               newStatuses[event.getId()!] = MessageStatus.DELIVERED;
             }
           } else {
-            // @ts-ignore
             newStatuses[event.getId()!] = MessageStatus.SENT;
           }
         } else {
           // Messages sent by other users
-          // @ts-ignore
           newStatuses[event.getId()!] = MessageStatus.READ;
         }
       });
@@ -105,17 +96,10 @@ export const MessageContainer: React.FC = () => {
     };
 
     // Helper function to check if an event has been read
-    const isEventRead = (
-      event: MatrixEvent,
-      readUpToEventId: string | null
-    ) => {
+    const isEventRead = (event: MatrixEvent, readUpToEventId: string | null) => {
       if (!readUpToEventId) return false;
-      const eventIndex = messages.findIndex(
-        (e) => e.getId() === event.getId()
-      );
-      const readEventIndex = messages.findIndex(
-        (e) => e.getId() === readUpToEventId
-      );
+      const eventIndex = messages.findIndex((e) => e.getId() === event.getId());
+      const readEventIndex = messages.findIndex((e) => e.getId() === readUpToEventId);
 
       return eventIndex <= readEventIndex;
     };
@@ -132,7 +116,6 @@ export const MessageContainer: React.FC = () => {
         }
       }
     };
-
     // @ts-ignore
     room.on("RoomMember.membership", handleMemberEvent);
 
@@ -140,7 +123,6 @@ export const MessageContainer: React.FC = () => {
     const handleReceiptEvent = () => {
       updateMessageStatuses();
     };
-
     // @ts-ignore
     room.on("Room.receipt", handleReceiptEvent);
 
@@ -153,8 +135,7 @@ export const MessageContainer: React.FC = () => {
         updateMessageStatuses();
       }
     };
-
-    // @ts-ignore
+  // @ts-ignore
     room.on("Room.timeline", handleRoomTimeline);
 
     // Clean up listeners on unmount or when room changes
@@ -192,14 +173,19 @@ export const MessageContainer: React.FC = () => {
       {messages.map((event: MatrixEvent) => {
         const sender = event.getSender();
         const content = event.getContent();
-        const message = content.body || "";
+        let message = content.body || "";
         const time = event.getDate()?.toLocaleTimeString() || "";
         const target =
           sender === MatrixService.getClient().getUserId()
             ? MessageTarget.SENDER
             : MessageTarget.RECEIVER;
-        // @ts-ignore
-        const status = messageStatuses[event.getId()] || MessageStatus.SENT;
+        const status = messageStatuses[event.getId()!] || MessageStatus.SENT;
+
+        // Check if the event is redacted (deleted)
+        const isRedacted = event.isRedacted();
+        if (isRedacted) {
+          message = "message deleted";
+        }
 
         return (
           <BaseMessage
@@ -208,6 +194,8 @@ export const MessageContainer: React.FC = () => {
             status={status}
             target={target}
             time={time}
+            eventId={event.getId()!}
+            isRedacted={isRedacted}
           />
         );
       })}

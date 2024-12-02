@@ -8,6 +8,7 @@ import { fontSans } from "@/config/fonts";
 import { CAside } from "@/components/c/aside/aside";
 import { ClientProviders } from "@/app/(providers)/ClientProviders";
 import AuthGuard from "@/guard/AuthGuard";
+import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: {
@@ -52,14 +53,17 @@ export default function RootLayout({
           fontSans.variable,
         )}
       >
-        <AuthGuard>
-          <ClientProviders>
-            <div className="relative flex flex-row h-screen">
-              <CAside />
-              <main className="container w-full">{children}</main>
-            </div>
-          </ClientProviders>
-        </AuthGuard>
+      <div>
+        <Toaster position="bottom-right" reverseOrder={false} />
+      </div>
+      <AuthGuard>
+        <ClientProviders>
+          <div className="relative flex flex-row h-screen">
+            <CAside />
+            <main className="container w-full">{children}</main>
+          </div>
+        </ClientProviders>
+      </AuthGuard>
       </body>
     </html>
   );
