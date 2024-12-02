@@ -15,16 +15,9 @@ import {
   ModalBody,
   ModalFooter,
   Chip,
-  Tooltip,
 } from "@nextui-org/react";
 import { Button } from "@nextui-org/button";
-import {
-  FaTrash,
-  FaPaperPlane,
-  FaTimes,
-  FaUserPlus,
-  FaUsers,
-} from "react-icons/fa";
+import { FaTrash, FaPaperPlane, FaUserPlus, FaUsers } from "react-icons/fa";
 import { Input } from "@nextui-org/input";
 import { toast } from "react-hot-toast";
 
@@ -32,7 +25,12 @@ import { VerticalDotsIcon } from "@/components/icons";
 import MatrixService from "@/services/MatrixService";
 import { useMatrix } from "@/context/MatrixContext";
 
-export const DotDropdown = () => {
+// DotDropdownProps type (just pass isGroupRoom as a prop)
+interface DotDropdownProps {
+  isGroupRoom: boolean;
+}
+
+export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
   const { selectedRoom, refreshRooms } = useMatrix();
 
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
@@ -54,64 +52,58 @@ export const DotDropdown = () => {
   const myUserId = client.getUserId();
   const [isCurrentUserOwner, setIsCurrentUserOwner] = useState(false);
 
-  if (!selectedRoom) {
-    return null;
-  }
-
-  // Determine if it's a group room
-  const totalMembers = selectedRoom
-    .getMembers()
-    // @ts-ignore
-    .filter((member) => ["join", "invite"].includes(member.membership)).length;
-  const isGroupRoom = totalMembers > 2;
-
-  const deleteRoom = async () => {
-    if (!selectedRoom) {
-      toast.error("No room selected");
-
-      return;
-    }
-
-    try {
-      await MatrixService.deleteRoom(selectedRoom.roomId);
-
-      window.location.reload();
-    } catch (error) {
-      toast.error("Failed to delete room");
-    }
-  };
-
-  // Effect hook for searching users
   useEffect(() => {
     const searchUsers = async () => {
+      if (!selectedRoom) {
+        return;
+      }
       if (searchTerm.trim() === "") {
         setSearchResults([]);
+
         return;
       }
       try {
         const results = await MatrixService.searchUsers(searchTerm);
-        // Exclude users already in the room or invited
         const roomMembersIds =
-          selectedRoom?.getMembers()
+          selectedRoom
+            ?.getMembers()
             // @ts-ignore
             .filter((member) => ["join", "invite"].includes(member.membership))
             .map((member) => member.userId) || [];
 
         const filteredResults = results.filter(
-          (user) => !roomMembersIds.includes(user.user_id)
+          (user) => !roomMembersIds.includes(user.user_id),
         );
 
         setSearchResults(filteredResults);
       } catch (error) {
-        console.error("Error searching users:", error);
+        toast.error("Failed to search users");
       }
     };
 
-    // Only search if a room is selected
     if (selectedRoom) {
       searchUsers();
     }
   }, [searchTerm, selectedRoom]);
+
+  useEffect(() => {
+    if (isMembersModalOpen && selectedRoom) {
+      fetchRoomMembers();
+    }
+  }, [isMembersModalOpen, selectedRoom]);
+
+  if (!selectedRoom) {
+    return null;
+  }
+
+  const deleteRoom = async () => {
+    try {
+      await MatrixService.deleteRoom(selectedRoom.roomId);
+      window.location.reload();
+    } catch (error) {
+      toast.error("Failed to delete room");
+    }
+  };
 
   // Function to invite user
   const handleAddUser = async (userId: string) => {
@@ -120,7 +112,7 @@ export const DotDropdown = () => {
       toast.success(`User ${userId} invited to the room`);
       setSearchTerm(""); // Clear search term after inviting
       setSearchResults((prevResults) =>
-        prevResults.filter((user) => user.user_id !== userId)
+        prevResults.filter((user) => user.user_id !== userId),
       );
       await refreshRooms(); // Refresh rooms to update members
 
@@ -135,7 +127,6 @@ export const DotDropdown = () => {
         },
       ]);
     } catch (error) {
-      console.error("Error inviting user:", error);
       toast.error("Failed to invite user");
     }
   };
@@ -146,16 +137,15 @@ export const DotDropdown = () => {
       await MatrixService.kickUserFromRoom(
         selectedRoom!.roomId,
         userId,
-        "Invitation cancelled by owner"
+        "Invitation cancelled by owner",
       );
       toast.success(`Invitation to ${userId} cancelled`);
 
       // Update the roomMembers state immediately
       setRoomMembers((prevMembers) =>
-        prevMembers.filter((member) => member.userId !== userId)
+        prevMembers.filter((member) => member.userId !== userId),
       );
     } catch (error) {
-      console.error("Error cancelling invitation:", error);
       toast.error("Failed to cancel invitation");
     }
   };
@@ -164,6 +154,7 @@ export const DotDropdown = () => {
   const fetchRoomMembers = () => {
     if (!selectedRoom) {
       setRoomMembers([]);
+
       return;
     }
 
@@ -172,7 +163,7 @@ export const DotDropdown = () => {
     // Get room creator
     const createEvent = selectedRoom.currentState.getStateEvents(
       "m.room.create",
-      ""
+      "",
     );
     const roomCreator = createEvent?.getContent()?.creator;
 
@@ -182,6 +173,7 @@ export const DotDropdown = () => {
     const membersData = members
       .map((member) => {
         const isOwner = member.userId === roomCreator;
+
         return {
           userId: member.userId,
           displayName: member.name || member.userId,
@@ -196,18 +188,49 @@ export const DotDropdown = () => {
     membersData.sort((a, b) => {
       if (a.isOwner && !b.isOwner) return -1;
       if (!a.isOwner && b.isOwner) return 1;
+
       return a.displayName.localeCompare(b.displayName);
     });
     // @ts-ignore
     setRoomMembers(membersData);
   };
 
-  // Fetch room members when the modal is opened
-  useEffect(() => {
-    if (isMembersModalOpen && selectedRoom) {
-      fetchRoomMembers();
-    }
-  }, [isMembersModalOpen, selectedRoom]);
+  // Collect menu items
+  const menuItems = [];
+
+  if (isGroupRoom) {
+    menuItems.push(
+      <DropdownItem
+        key="addUser"
+        startContent={<FaUserPlus className="w-4 h-4" />}
+        onClick={() => setIsAddUserModalOpen(true)}
+      >
+        Add Members
+      </DropdownItem>,
+    );
+  }
+
+  menuItems.push(
+    <DropdownItem
+      key="viewMembers"
+      startContent={<FaUsers className="w-4 h-4" />}
+      onClick={() => setIsMembersModalOpen(true)}
+    >
+      Members
+    </DropdownItem>,
+  );
+
+  menuItems.push(
+    <DropdownItem
+      key="delete"
+      className="text-[#F31260]"
+      color="danger"
+      startContent={<FaTrash className="w-4 h-4" />}
+      onClick={deleteRoom}
+    >
+      Delete
+    </DropdownItem>,
+  );
 
   return (
     <>
@@ -218,39 +241,15 @@ export const DotDropdown = () => {
           </Button>
         </DropdownTrigger>
         <DropdownMenu aria-label="Room actions menu" variant="faded">
-          <DropdownSection title="Room actions">
-            <DropdownItem
-              key="addUser"
-              startContent={<FaUserPlus className="w-4 h-4" />}
-              onClick={() => setIsAddUserModalOpen(true)}
-            >
-              Add Members
-            </DropdownItem>
-            <DropdownItem
-              key="viewMembers"
-              startContent={<FaUsers className="w-4 h-4" />}
-              onClick={() => setIsMembersModalOpen(true)}
-            >
-              Members
-            </DropdownItem>
-            <DropdownItem
-              key="delete"
-              className="text-[#F31260]"
-              color="danger"
-              startContent={<FaTrash className="w-4 h-4" />}
-              onClick={deleteRoom}
-            >
-              Delete
-            </DropdownItem>
-          </DropdownSection>
+          <DropdownSection title="Room actions">{menuItems}</DropdownSection>
         </DropdownMenu>
       </Dropdown>
 
       {/* Add User Modal */}
       <Modal
         isOpen={isAddUserModalOpen}
-        onClose={() => setIsAddUserModalOpen(false)}
         scrollBehavior="inside"
+        onClose={() => setIsAddUserModalOpen(false)}
       >
         <ModalContent>
           <ModalHeader>Add User to Room</ModalHeader>
@@ -270,8 +269,8 @@ export const DotDropdown = () => {
                   <span>{user.display_name}</span>
                   <Button
                     size="sm"
-                    variant="flat"
                     startContent={<FaPaperPlane />}
+                    variant="flat"
                     onClick={() => handleAddUser(user.user_id)}
                   >
                     Invite
@@ -297,8 +296,8 @@ export const DotDropdown = () => {
       {/* Members Modal */}
       <Modal
         isOpen={isMembersModalOpen}
-        onClose={() => setIsMembersModalOpen(false)}
         scrollBehavior="inside"
+        onClose={() => setIsMembersModalOpen(false)}
       >
         <ModalContent>
           <ModalHeader>Room Members</ModalHeader>
@@ -317,6 +316,7 @@ export const DotDropdown = () => {
                   </span>
                   <div className="flex items-center gap-2">
                     <Chip
+                      className="flex items-center"
                       color={
                         member.membership === "join"
                           ? "success"
@@ -324,27 +324,21 @@ export const DotDropdown = () => {
                             ? "warning"
                             : "default"
                       }
-                      className="flex items-center"
                     >
                       <span>
                         {member.membership === "join" && "Joined"}
                         {member.membership === "invite" && "Invited"}
                         {member.membership === "leave" && "Left"}
-                        {/* Add other statuses if needed */}
                       </span>
-                      {isCurrentUserOwner &&
-                        member.membership === "invite" && (
-                          <Tooltip content="Remove invitation">
-                            <span
-                              className="ml-2 cursor-pointer"
-                              onClick={() =>
-                                handleCancelInvitation(member.userId)
-                              }
-                            >
-                              X
-                            </span>
-                          </Tooltip>
-                        )}
+                      {isCurrentUserOwner && member.membership === "invite" && (
+                        <button
+                          className="ml-2 cursor-pointer"
+                          type="button"
+                          onClick={() => handleCancelInvitation(member.userId)}
+                        >
+                          X
+                        </button>
+                      )}
                     </Chip>
                   </div>
                 </div>
@@ -354,7 +348,7 @@ export const DotDropdown = () => {
             )}
           </ModalBody>
           <ModalFooter>
-          <Button
+            <Button
               color="default"
               variant="flat"
               onClick={() => setIsMembersModalOpen(false)}

@@ -34,6 +34,7 @@ export const MessageContainer: React.FC = () => {
     if (!selectedRoom) {
       setOtherUserJoined(true);
       setMessageStatuses({});
+
       return;
     }
 
@@ -42,22 +43,25 @@ export const MessageContainer: React.FC = () => {
     const room = selectedRoom;
 
     // Determine if the room is a direct message
-    const isDirectMessage = room.getJoinedMemberCount() <= 2;
+    const isDirectMessage = MatrixService.isDirectRoom(selectedRoom.roomId);
 
     // Function to update the 'otherUserJoined' state
     const updateOtherUserJoined = () => {
       if (!isDirectMessage) {
         // For group rooms, we don't need to check if other users have joined
         setOtherUserJoined(true);
+
         return;
       }
 
       const members = room.getMembers();
-      const otherMembers = members.filter((member) => member.userId !== myUserId);
+      const otherMembers = members.filter(
+        (member) => member.userId !== myUserId,
+      );
 
       // Check if any of the other members have joined
       const otherUserHasJoined = otherMembers.some(
-        (member) => member.membership === "join"
+        (member) => member.membership === "join",
       );
 
       setOtherUserJoined(otherUserHasJoined);
@@ -69,8 +73,11 @@ export const MessageContainer: React.FC = () => {
     // Function to update message statuses
     const updateMessageStatuses = () => {
       const newStatuses: { [eventId: string]: MessageStatus } = {};
-      const otherMembers = room.getMembers().filter((m) => m.userId !== myUserId);
-      const otherUserId = otherMembers.length > 0 ? otherMembers[0].userId : null;
+      const otherMembers = room
+        .getMembers()
+        .filter((m) => m.userId !== myUserId);
+      const otherUserId =
+        otherMembers.length > 0 ? otherMembers[0].userId : null;
 
       messages.forEach((event) => {
         if (event.getSender() === myUserId) {
@@ -96,10 +103,15 @@ export const MessageContainer: React.FC = () => {
     };
 
     // Helper function to check if an event has been read
-    const isEventRead = (event: MatrixEvent, readUpToEventId: string | null) => {
+    const isEventRead = (
+      event: MatrixEvent,
+      readUpToEventId: string | null,
+    ) => {
       if (!readUpToEventId) return false;
       const eventIndex = messages.findIndex((e) => e.getId() === event.getId());
-      const readEventIndex = messages.findIndex((e) => e.getId() === readUpToEventId);
+      const readEventIndex = messages.findIndex(
+        (e) => e.getId() === readUpToEventId,
+      );
 
       return eventIndex <= readEventIndex;
     };
@@ -116,6 +128,7 @@ export const MessageContainer: React.FC = () => {
         }
       }
     };
+
     // @ts-ignore
     room.on("RoomMember.membership", handleMemberEvent);
 
@@ -123,6 +136,7 @@ export const MessageContainer: React.FC = () => {
     const handleReceiptEvent = () => {
       updateMessageStatuses();
     };
+
     // @ts-ignore
     room.on("Room.receipt", handleReceiptEvent);
 
@@ -135,7 +149,8 @@ export const MessageContainer: React.FC = () => {
         updateMessageStatuses();
       }
     };
-  // @ts-ignore
+
+    // @ts-ignore
     room.on("Room.timeline", handleRoomTimeline);
 
     // Clean up listeners on unmount or when room changes
@@ -183,6 +198,7 @@ export const MessageContainer: React.FC = () => {
 
         // Check if the event is redacted (deleted)
         const isRedacted = event.isRedacted();
+
         if (isRedacted) {
           message = "message deleted";
         }
@@ -190,12 +206,12 @@ export const MessageContainer: React.FC = () => {
         return (
           <BaseMessage
             key={event.getId()}
+            eventId={event.getId()!}
+            isRedacted={isRedacted}
             message={message}
             status={status}
             target={target}
             time={time}
-            eventId={event.getId()!}
-            isRedacted={isRedacted}
           />
         );
       })}

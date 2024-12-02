@@ -259,21 +259,22 @@ class MatrixService {
    */
   public getDirectRoomWithUser(userId: string): sdk.Room | null {
     const client = this.getClient();
-    const rooms = client.getRooms();
 
-    // Iterate through all rooms to find a direct room with the user
-    for (const room of rooms) {
-      const isDirect =
-        room.currentState.getStateEvents("m.room.member").length === 2;
-      const roomMembers = room
-        .getJoinedMembers()
-        .map((member) => member.userId);
+    const mDirectEvent = client.getAccountData("m.direct");
 
-      if (
-        isDirect &&
-        roomMembers.includes(userId) &&
-        roomMembers.includes(this.getCurrentUserId())
-      ) {
+    if (!mDirectEvent) {
+      return null;
+    }
+
+    const directRoomsMap: { [userId: string]: string[] } =
+      mDirectEvent.getContent();
+
+    const roomIds = directRoomsMap[userId] || [];
+
+    for (const roomId of roomIds) {
+      const room = client.getRoom(roomId);
+
+      if (room) {
         return room;
       }
     }
@@ -299,7 +300,28 @@ class MatrixService {
         invite: [userId],
       });
 
-      return response.room_id;
+      const roomId = response.room_id;
+
+      // Update m.direct account data
+      const client = this.getClient();
+      const mDirectEvent = client.getAccountData("m.direct");
+      let directRoomsMap: { [userId: string]: string[] } = {};
+
+      if (mDirectEvent) {
+        directRoomsMap = mDirectEvent.getContent();
+      }
+
+      if (!directRoomsMap[userId]) {
+        directRoomsMap[userId] = [];
+      }
+
+      if (!directRoomsMap[userId].includes(roomId)) {
+        directRoomsMap[userId].push(roomId);
+
+        await client.setAccountData("m.direct", directRoomsMap);
+      }
+
+      return roomId;
     } catch (error) {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
@@ -472,7 +494,11 @@ class MatrixService {
    * @param userId - The ID of the user to kick.
    * @param reason - The reason for kicking the user.
    */
-  public async kickUserFromRoom(roomId: string, userId: string, reason: string): Promise<void> {
+  public async kickUserFromRoom(
+    roomId: string,
+    userId: string,
+    reason: string,
+  ): Promise<void> {
     try {
       await this.getClient().kick(roomId, userId, reason);
     } catch (error) {
@@ -507,6 +533,32 @@ class MatrixService {
         throw new Error("Deleting message failed: Unknown error");
       }
     }
+  }
+
+  /**
+   * Check if a room is marked as a direct message room.
+   * @param roomId - The ID of the room.
+   * @returns True if the room is a direct message room; otherwise, false.
+   */
+  public isDirectRoom(roomId: string): boolean {
+    const client = this.getClient();
+    const mDirectEvent = client.getAccountData("m.direct");
+
+    if (!mDirectEvent) {
+      return false;
+    }
+
+    const directRoomsMap = mDirectEvent.getContent();
+
+    for (const userId in directRoomsMap) {
+      const roomIds = directRoomsMap[userId];
+
+      if (roomIds.includes(roomId)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }
 

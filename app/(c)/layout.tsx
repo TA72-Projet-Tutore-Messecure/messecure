@@ -2,13 +2,13 @@ import "@/styles/globals.css";
 import { Metadata, Viewport } from "next";
 import clsx from "clsx";
 import React from "react";
+import { Toaster } from "react-hot-toast";
 
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
 import { CAside } from "@/components/c/aside/aside";
 import { ClientProviders } from "@/app/(providers)/ClientProviders";
 import AuthGuard from "@/guard/AuthGuard";
-import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: {
@@ -53,17 +53,17 @@ export default function RootLayout({
           fontSans.variable,
         )}
       >
-      <div>
-        <Toaster position="bottom-right" reverseOrder={false} />
-      </div>
-      <AuthGuard>
-        <ClientProviders>
-          <div className="relative flex flex-row h-screen">
-            <CAside />
-            <main className="container w-full">{children}</main>
-          </div>
-        </ClientProviders>
-      </AuthGuard>
+        <div>
+          <Toaster position="bottom-right" reverseOrder={false} />
+        </div>
+        <AuthGuard>
+          <ClientProviders>
+            <div className="relative flex flex-row h-screen">
+              <CAside />
+              <main className="container w-full">{children}</main>
+            </div>
+          </ClientProviders>
+        </AuthGuard>
       </body>
     </html>
   );

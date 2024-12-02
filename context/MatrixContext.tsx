@@ -78,7 +78,7 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       // Check if it's a direct message room
-      const isDirect = room.getJoinedMemberCount() <= 2;
+      const isDirect = MatrixService.isDirectRoom(room.roomId);
 
       if (isDirect) {
         const members = room.getMembers();
@@ -136,6 +136,25 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
     );
 
     setRooms(allRooms);
+
+
+    // Log room data
+    allRooms.forEach((room) => {
+      const roomId = room.roomId;
+      const roomName = room.name || roomId;
+      const members = room.getMembers().map((member) => ({
+        userId: member.userId,
+        membership: member.membership,
+      }));
+      const isDirect = MatrixService.isDirectRoom(roomId);
+
+      console.log("Room Data:", {
+        roomId,
+        roomName,
+        isDirect,
+        members,
+      });
+    });
   }, []);
 
   /**

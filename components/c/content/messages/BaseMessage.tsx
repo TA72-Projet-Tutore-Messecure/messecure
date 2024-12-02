@@ -11,24 +11,24 @@ import {
   DropdownMenu,
   DropdownTrigger,
 } from "@nextui-org/react";
-import { useMatrix } from "@/context/MatrixContext";
+import { FaClipboard, FaTrash } from "react-icons/fa";
+import { toast } from "react-hot-toast";
 
+import { useMatrix } from "@/context/MatrixContext";
 import {
   BaseMessageProps,
   MessageStatus,
   MessageTarget,
 } from "@/types/messages";
-import { FaClipboard, FaTrash } from "react-icons/fa";
-import { toast } from "react-hot-toast";
 
 export const BaseMessage: React.FC<BaseMessageProps> = ({
-                                                          time,
-                                                          target,
-                                                          status,
-                                                          message,
-                                                          eventId,
-                                                          isRedacted,
-                                                        }) => {
+  time,
+  target,
+  status,
+  message,
+  eventId,
+  isRedacted,
+}) => {
   const { deleteMessage } = useMatrix();
 
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
@@ -67,7 +67,7 @@ export const BaseMessage: React.FC<BaseMessageProps> = ({
         <span className="flex flex-row gap-2 items-center">
           <FaClipboard /> Copy Message
         </span>
-      </DropdownItem>
+      </DropdownItem>,
     );
   }
 
@@ -82,7 +82,7 @@ export const BaseMessage: React.FC<BaseMessageProps> = ({
         <span className="flex flex-row gap-2 items-center">
           <FaTrash /> Delete Message
         </span>
-      </DropdownItem>
+      </DropdownItem>,
     );
   }
 
@@ -91,7 +91,7 @@ export const BaseMessage: React.FC<BaseMessageProps> = ({
     actions.push(
       <DropdownItem key="noAction" isReadOnly>
         No actions available.
-      </DropdownItem>
+      </DropdownItem>,
     );
   }
 
@@ -102,13 +102,13 @@ export const BaseMessage: React.FC<BaseMessageProps> = ({
       }`}
     >
       <Dropdown
-        isOpen={isPopoverOpen}
-        onOpenChange={setIsPopoverOpen}
-        placement="right"
         classNames={{
           base: "before:bg-default-200", // change arrow background
           content: "py-1 px-1 backdrop-blur-md bg-opacity-80", // change dropdown content
         }}
+        isOpen={isPopoverOpen}
+        placement="right"
+        onOpenChange={setIsPopoverOpen}
       >
         <DropdownTrigger>
           <div
@@ -152,7 +152,7 @@ export const BaseMessage: React.FC<BaseMessageProps> = ({
             </div>
           </div>
         </DropdownTrigger>
-        <DropdownMenu variant="faded" aria-label="Message Actions">
+        <DropdownMenu aria-label="Message Actions" variant="faded">
           {actions}
         </DropdownMenu>
       </Dropdown>
