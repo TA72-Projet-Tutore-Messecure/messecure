@@ -17,10 +17,10 @@ interface CAsideContentProps {
 }
 
 export const CAsideContent: React.FC<CAsideContentProps> = ({
-  searchTerm,
-  searchResults,
-  setSearchTerm,
-}) => {
+                                                              searchTerm,
+                                                              searchResults,
+                                                              setSearchTerm,
+                                                            }) => {
   const { rooms, selectedRoom, selectRoom, clientReady, refreshRooms } =
     useMatrix();
 
@@ -38,6 +38,7 @@ export const CAsideContent: React.FC<CAsideContentProps> = ({
       // Select the room
       selectRoom(roomId);
     } catch (error) {
+      console.error(error);
       toast.error("Failed to start direct message");
     }
   };
@@ -48,6 +49,7 @@ export const CAsideContent: React.FC<CAsideContentProps> = ({
       await refreshRooms();
       selectRoom(roomId);
     } catch (error) {
+      console.error(error);
       toast.error("Failed to accept invitation");
     }
   };
@@ -62,6 +64,7 @@ export const CAsideContent: React.FC<CAsideContentProps> = ({
         selectRoom(null);
       }
     } catch (error) {
+      console.error(error);
       toast.error("Failed to decline invitation");
     }
   };
@@ -78,13 +81,19 @@ export const CAsideContent: React.FC<CAsideContentProps> = ({
     <div className="w-full max-w-full flex flex-col items-center py-2 px-2 overflow-y-auto">
       {searchTerm.trim() !== "" && searchResults.length > 0
         ? searchResults.map((user) => (
-            <CAsideUser
-              key={user.user_id}
-              user={user}
-              onClick={() => handleStartDM(user.user_id)}
-            />
-          ))
-        : rooms.map((room) => (
+          <CAsideUser
+            key={user.user_id}
+            user={user}
+            onClick={() => handleStartDM(user.user_id)}
+          />
+        ))
+        : rooms.map((room) => {
+          // Determine if the room is a direct message
+          const isDirectRoom = MatrixService.isDirectRoom(room.roomId);
+          const isDM = MatrixService.isDMRoomInvitedMember(room);
+          const isDirectMessage = isDirectRoom || isDM;
+
+          return (
             <CAsideConversation
               key={room.roomId}
               active={selectedRoom?.roomId === room.roomId}
@@ -98,8 +107,10 @@ export const CAsideContent: React.FC<CAsideContentProps> = ({
                 }
               }}
               onDecline={() => handleDeclineInvitation(room.roomId)}
+              isDirectMessage={isDirectMessage} // Pass this prop if needed
             />
-          ))}
+          );
+        })}
     </div>
   );
 };

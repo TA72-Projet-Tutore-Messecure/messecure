@@ -5,6 +5,7 @@
 import * as sdk from "matrix-js-sdk/lib/browser-index";
 
 import { MatrixErrorParser } from "@/lib/matrixErrorParser";
+import { Room } from "matrix-js-sdk";
 
 class MatrixService {
   private static instance: MatrixService;
@@ -253,33 +254,44 @@ class MatrixService {
   }
 
   /**
-   * Get an existing direct room with a user, if it exists.
+   * Get an existing direct room with a user, considering both inviter and invitee scenarios.
    * @param userId - The user ID to check.
    * @returns The room object if exists; otherwise, null.
    */
   public getDirectRoomWithUser(userId: string): sdk.Room | null {
     const client = this.getClient();
-
     const mDirectEvent = client.getAccountData("m.direct");
 
     if (!mDirectEvent) {
       return null;
     }
 
-    const directRoomsMap: { [userId: string]: string[] } =
-      mDirectEvent.getContent();
-
+    const directRoomsMap: { [userId: string]: string[] } = mDirectEvent.getContent();
     const roomIds = directRoomsMap[userId] || [];
 
     for (const roomId of roomIds) {
       const room = client.getRoom(roomId);
-
       if (room) {
-        return room;
+        // Additionally check if the room is a DM room
+        const isDirect = this.isDirectRoom(roomId);
+        const isDM = this.isDMRoomInvitedMember(room);
+        if (isDirect || isDM) {
+          return room;
+        }
       }
     }
 
     return null;
+  }
+
+  /**
+   * Determine if a room is a direct message (DM) room.
+   * @param room - The Matrix room to check.
+   * @returns True if it's a DM room; otherwise, false.
+   */
+  public isDMRoomInvitedMember(room: Room): boolean {
+    const me = room.getMember(this.userId!);
+    return !!me?.getDMInviter();
   }
 
   /**
@@ -444,12 +456,40 @@ class MatrixService {
             await client.kick(roomId, member.userId, "Room deleted");
           } catch (error) {
             // Ignore errors if user already left
+            console.warn(`Failed to kick user ${member.userId}:`, error);
           }
         }
       }
 
-      // Optionally, forget the room to remove it from the room list
+      // Forget the room to remove it from the room list
       await client.forget(roomId);
+
+      // Remove roomId from m.direct account data
+      const mDirectEvent = client.getAccountData("m.direct");
+      if (mDirectEvent) {
+        const directRoomsMap: { [userId: string]: string[] } = mDirectEvent.getContent();
+
+        let updated = false;
+
+        for (const userId in directRoomsMap) {
+          const roomIds = directRoomsMap[userId];
+          const index = roomIds.indexOf(roomId);
+          if (index !== -1) {
+            roomIds.splice(index, 1);
+            updated = true;
+          }
+
+          // If no room IDs left for a user, delete the key
+          if (roomIds.length === 0) {
+            delete directRoomsMap[userId];
+            updated = true;
+          }
+        }
+
+        if (updated) {
+          await client.setAccountData("m.direct", directRoomsMap);
+        }
+      }
 
       // Emit an event to update the room list in the application
       // @ts-ignore
@@ -559,7 +599,7 @@ class MatrixService {
 
     return false;
   }
-  
+
     /**
    * Change the password of the current user.
    * @param oldPassword - The old password.
@@ -576,11 +616,15 @@ class MatrixService {
       if (this.matrixClient) {
         await this.matrixClient.setPassword(authDict, newPassword, true);
       }
-        throw new Error(`Changing password failed: ${parsedError?.message}`, {
-          cause: parsedError,
-        });
-      } else {
-        throw new Error("Changing password failed: Unknown error");
+    }catch (error) {
+        if (error instanceof Error) {
+          const parsedError = MatrixErrorParser.parse(error.toString());
+          throw new Error(`Updating password failed: ${parsedError?.message}`, {
+            cause: parsedError,
+          });
+        } else {
+          throw new Error("Updating password failed: Unknown error");
+        }
       }
     }
 }

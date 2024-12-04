@@ -13,6 +13,7 @@ import { Room, MatrixEvent, SyncState } from "matrix-js-sdk";
 import { toast } from "react-hot-toast";
 
 import MatrixService from "@/services/MatrixService";
+import { usePathname, useRouter } from "next/navigation";
 
 interface MatrixContextProps {
   rooms: Room[];
@@ -53,6 +54,8 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [messages, setMessages] = useState<MatrixEvent[]>([]);
   const [clientReady, setClientReady] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
 
   /**
    * Refreshes the list of rooms by fetching them from the Matrix client
@@ -79,8 +82,10 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Check if it's a direct message room
       const isDirect = MatrixService.isDirectRoom(room.roomId);
+      const isDM = MatrixService.isDMRoomInvitedMember(room);
+      const direct = isDirect || isDM;
 
-      if (isDirect) {
+      if (direct) {
         const members = room.getMembers();
         const otherMembers = members.filter((member) => member.userId !== myUserId);
 
@@ -137,7 +142,6 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
 
     setRooms(allRooms);
 
-
     // Log room data
     allRooms.forEach((room) => {
       const roomId = room.roomId;
@@ -147,11 +151,13 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
         membership: member.membership,
       }));
       const isDirect = MatrixService.isDirectRoom(roomId);
+      const isDM = MatrixService.isDMRoomInvitedMember(room);
 
       console.log("Room Data:", {
         roomId,
         roomName,
         isDirect,
+        isDM,
         members,
       });
     });
@@ -181,6 +187,9 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
       setMessages(timeline);
     } else {
       setMessages([]);
+    }
+    if (pathname !== "/chat") {
+      router.push("/chat");
     }
   }, []);
 

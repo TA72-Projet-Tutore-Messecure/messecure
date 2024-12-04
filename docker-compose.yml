@@ -28,22 +28,22 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
-  messecure:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: production  # ou 'production' selon vos besoins
-    container_name: messecure-app
-    volumes:
-      - ./:/app
-      - /app/node_modules
-    ports:
-      - "3000:3000"
-    depends_on:
-      - synapse
-    environment:
-      - NODE_ENV=development
-    restart: unless-stopped
+#  messecure:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#      target: production  # ou 'production' selon vos besoins
+#    container_name: messecure-app
+#    volumes:
+#      - ./:/app
+#      - /app/node_modules
+#    ports:
+#      - "3000:3000"
+#    depends_on:
+#      - synapse
+#    environment:
+#      - NODE_ENV=development
+#    restart: unless-stopped
 
 # At the end of your docker-compose.yml
 volumes:
