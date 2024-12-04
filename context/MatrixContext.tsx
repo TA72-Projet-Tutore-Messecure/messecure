@@ -20,6 +20,7 @@ interface MatrixContextProps {
   selectRoom: (roomId: string | null) => void;
   messages: MatrixEvent[];
   sendMessage: (message: string) => Promise<void>;
+  deleteMessage: (eventId: string) => Promise<void>;
   refreshRooms: () => void;
   clientReady: boolean;
 }
@@ -46,8 +47,8 @@ const isMessageEvent = (event: MatrixEvent): boolean => {
 };
 
 export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+                                                                          children,
+                                                                        }) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [messages, setMessages] = useState<MatrixEvent[]>([]);
@@ -69,8 +70,7 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
     // Filter rooms and identify rooms to leave
     allRooms = allRooms.filter((room) => {
       const myMembership = room.getMyMembership();
-      const isJoinedOrInvited =
-        myMembership === "join" || myMembership === "invite";
+      const isJoinedOrInvited = myMembership === "join" || myMembership === "invite";
 
       if (!isJoinedOrInvited) {
         // Skip rooms where user is not joined or invited
@@ -78,13 +78,11 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       // Check if it's a direct message room
-      const isDirect = room.getJoinedMemberCount() <= 2;
+      const isDirect = MatrixService.isDirectRoom(room.roomId);
 
       if (isDirect) {
         const members = room.getMembers();
-        const otherMembers = members.filter(
-          (member) => member.userId !== myUserId,
-        );
+        const otherMembers = members.filter((member) => member.userId !== myUserId);
 
         // Check the membership status of the other user
         if (otherMembers.length === 1) {
@@ -134,10 +132,29 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     allRooms.sort(
-      (a, b) => b.getLastActiveTimestamp() - a.getLastActiveTimestamp(),
+      (a, b) => b.getLastActiveTimestamp() - a.getLastActiveTimestamp()
     );
 
     setRooms(allRooms);
+
+
+    // Log room data
+    allRooms.forEach((room) => {
+      const roomId = room.roomId;
+      const roomName = room.name || roomId;
+      const members = room.getMembers().map((member) => ({
+        userId: member.userId,
+        membership: member.membership,
+      }));
+      const isDirect = MatrixService.isDirectRoom(roomId);
+
+      console.log("Room Data:", {
+        roomId,
+        roomName,
+        isDirect,
+        members,
+      });
+    });
   }, []);
 
   /**
@@ -159,10 +176,7 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
     setSelectedRoom(room);
     if (room) {
       // Fetch live timeline events and filter only message events
-      const timeline = room
-        .getLiveTimeline()
-        .getEvents()
-        .filter(isMessageEvent);
+      const timeline = room.getLiveTimeline().getEvents().filter(isMessageEvent);
 
       setMessages(timeline);
     } else {
@@ -180,7 +194,32 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
         await MatrixService.sendMessage(selectedRoom.roomId, message);
       }
     },
-    [selectedRoom],
+    [selectedRoom]
+  );
+
+  /**
+   * Deletes a message in the currently selected room.
+   * @param eventId - The ID of the event (message) to delete.
+   */
+  const deleteMessage = useCallback(
+    async (eventId: string) => {
+      if (selectedRoom) {
+        try {
+          await MatrixService.deleteMessage(selectedRoom.roomId, eventId);
+          // Update the messages state
+          setMessages((prevMessages) =>
+            prevMessages.map((msg) =>
+              msg.getId() === eventId
+                ? selectedRoom.findEventById(eventId) || msg
+                : msg
+            )
+          );
+        } catch (error) {
+          toast.error("Failed to delete message");
+        }
+      }
+    },
+    [selectedRoom]
   );
 
   /**
@@ -197,11 +236,7 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
       } else {
         // Wait for client to be ready
         const onSync = (state: SyncState) => {
-          if (
-            state === "PREPARED" ||
-            state === "SYNCING" ||
-            state === "CATCHUP"
-          ) {
+          if (state === "PREPARED" || state === "SYNCING" || state === "CATCHUP") {
             setClientReady(true);
             refreshRooms();
           }
@@ -237,7 +272,6 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
         setMessages((prevMessages) => [...prevMessages, event]);
       }
     };
-
     // @ts-ignore
     client.on("Room.timeline", onRoomTimeline);
 
@@ -262,7 +296,6 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
     const onRoomMember = () => {
       refreshRooms();
     };
-
     // @ts-ignore
     client.on("RoomMember.membership", onRoomMember);
 
@@ -280,6 +313,7 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
         selectRoom,
         messages,
         sendMessage,
+        deleteMessage,
         refreshRooms,
         clientReady,
       }}

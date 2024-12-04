@@ -259,21 +259,22 @@ class MatrixService {
    */
   public getDirectRoomWithUser(userId: string): sdk.Room | null {
     const client = this.getClient();
-    const rooms = client.getRooms();
 
-    // Iterate through all rooms to find a direct room with the user
-    for (const room of rooms) {
-      const isDirect =
-        room.currentState.getStateEvents("m.room.member").length === 2;
-      const roomMembers = room
-        .getJoinedMembers()
-        .map((member) => member.userId);
+    const mDirectEvent = client.getAccountData("m.direct");
 
-      if (
-        isDirect &&
-        roomMembers.includes(userId) &&
-        roomMembers.includes(this.getCurrentUserId())
-      ) {
+    if (!mDirectEvent) {
+      return null;
+    }
+
+    const directRoomsMap: { [userId: string]: string[] } =
+      mDirectEvent.getContent();
+
+    const roomIds = directRoomsMap[userId] || [];
+
+    for (const roomId of roomIds) {
+      const room = client.getRoom(roomId);
+
+      if (room) {
         return room;
       }
     }
@@ -299,7 +300,28 @@ class MatrixService {
         invite: [userId],
       });
 
-      return response.room_id;
+      const roomId = response.room_id;
+
+      // Update m.direct account data
+      const client = this.getClient();
+      const mDirectEvent = client.getAccountData("m.direct");
+      let directRoomsMap: { [userId: string]: string[] } = {};
+
+      if (mDirectEvent) {
+        directRoomsMap = mDirectEvent.getContent();
+      }
+
+      if (!directRoomsMap[userId]) {
+        directRoomsMap[userId] = [];
+      }
+
+      if (!directRoomsMap[userId].includes(roomId)) {
+        directRoomsMap[userId].push(roomId);
+
+        await client.setAccountData("m.direct", directRoomsMap);
+      }
+
+      return roomId;
     } catch (error) {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
@@ -446,6 +468,99 @@ class MatrixService {
   }
 
   /**
+   * Invite a user to a room.
+   * @param roomId - The ID of the room.
+   * @param userId - The ID of the user to invite.
+   */
+  public async inviteUserToRoom(roomId: string, userId: string): Promise<void> {
+    try {
+      await this.getClient().invite(roomId, userId);
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+
+        throw new Error(`Inviting user failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
+      } else {
+        throw new Error("Inviting user failed: Unknown error");
+      }
+    }
+  }
+
+  /**
+   * Kick a user from a room.
+   * @param roomId - The ID of the room.
+   * @param userId - The ID of the user to kick.
+   * @param reason - The reason for kicking the user.
+   */
+  public async kickUserFromRoom(
+    roomId: string,
+    userId: string,
+    reason: string,
+  ): Promise<void> {
+    try {
+      await this.getClient().kick(roomId, userId, reason);
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+
+        throw new Error(`Kicking user failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
+      } else {
+        throw new Error("Kicking user failed: Unknown error");
+      }
+    }
+  }
+
+  /**
+   * Deletes a message (redacts an event) in a room.
+   * @param roomId - The ID of the room.
+   * @param eventId - The ID of the event (message) to delete.
+   */
+  public async deleteMessage(roomId: string, eventId: string): Promise<void> {
+    try {
+      await this.getClient().redactEvent(roomId, eventId);
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+        throw new Error(`Deleting message failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
+      } else {
+        throw new Error("Deleting message failed: Unknown error");
+      }
+    }
+  }
+
+  /**
+   * Check if a room is marked as a direct message room.
+   * @param roomId - The ID of the room.
+   * @returns True if the room is a direct message room; otherwise, false.
+   */
+  public isDirectRoom(roomId: string): boolean {
+    const client = this.getClient();
+    const mDirectEvent = client.getAccountData("m.direct");
+
+    if (!mDirectEvent) {
+      return false;
+    }
+
+    const directRoomsMap = mDirectEvent.getContent();
+
+    for (const userId in directRoomsMap) {
+      const roomIds = directRoomsMap[userId];
+
+      if (roomIds.includes(roomId)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+  
+    /**
    * Change the password of the current user.
    * @param oldPassword - The old password.
    * @param newPassword - The new password.
@@ -461,10 +576,6 @@ class MatrixService {
       if (this.matrixClient) {
         await this.matrixClient.setPassword(authDict, newPassword, true);
       }
-    } catch (error) {
-      if (error instanceof Error) {
-        const parsedError = MatrixErrorParser.parse(error.toString());
-
         throw new Error(`Changing password failed: ${parsedError?.message}`, {
           cause: parsedError,
         });
@@ -472,7 +583,6 @@ class MatrixService {
         throw new Error("Changing password failed: Unknown error");
       }
     }
-  }
 }
 
 export default MatrixService.getInstance();

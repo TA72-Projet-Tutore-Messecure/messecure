@@ -8,6 +8,7 @@ import { FaSearch } from "react-icons/fa";
 
 import { useMatrix } from "@/context/MatrixContext";
 import { DotDropdown } from "@/components/c/content/header/DotDropdown";
+import MatrixService from "@/services/MatrixService";
 
 export const ChatHeader: React.FC = () => {
   const { selectedRoom } = useMatrix();
@@ -18,8 +19,16 @@ export const ChatHeader: React.FC = () => {
 
   const roomName = selectedRoom.name || selectedRoom.roomId;
 
+  // Use the isDirectRoom method from MatrixService
+  const isDirectRoom = MatrixService.isDirectRoom(selectedRoom.roomId);
+
+  // If it's not a direct room, it's a group room
+  const isGroupRoom = !isDirectRoom;
+
+  const displayRoomName = isGroupRoom ? `${roomName} (group)` : roomName;
+
   return (
-    <div className="bg-white dark:bg-[#212121] w-full flex justify-between flex-row h-[10vh] z-50 shadow items-center">
+    <div className="bg-white dark:bg-[#212121] w-full flex justify-between h-[10vh] z-50 shadow items-center">
       <div className="flex flex-row items-center gap-3 ml-[2vw]">
         <Avatar
           isBordered
@@ -29,12 +38,12 @@ export const ChatHeader: React.FC = () => {
           size="md"
         />
         <h3 className="cursor-pointer text-black dark:text-white text-lg">
-          {roomName}
+          {displayRoomName}
         </h3>
       </div>
-      <div className="flex flex-row gap-4 mr-[2vw]">
+      <div className="flex flex-row items-center gap-4 mr-[2vw]">
         <FaSearch className="w-5 h-5 cursor-pointer" />
-        <DotDropdown />
+        <DotDropdown isGroupRoom={isGroupRoom} />
       </div>
     </div>
   );
