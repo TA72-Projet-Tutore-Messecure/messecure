@@ -13,17 +13,15 @@ interface CAsideConversationProps {
   onClick: () => void;
   onAccept?: () => void;
   onDecline?: () => void;
-  isDirectMessage?: boolean; // New prop
 }
 
 export const CAsideConversation: React.FC<CAsideConversationProps> = ({
-                                                                        room,
-                                                                        active,
-                                                                        onClick,
-                                                                        onAccept,
-                                                                        onDecline,
-                                                                        isDirectMessage = false, // Default value
-                                                                      }) => {
+  room,
+  active,
+  onClick,
+  onAccept,
+  onDecline,
+}) => {
   const roomName = room.name || room.roomId;
   const lastEvent = room.timeline[room.timeline.length - 1];
   const lastMessage = lastEvent?.getContent()?.body || "";
@@ -34,10 +32,10 @@ export const CAsideConversation: React.FC<CAsideConversationProps> = ({
     <div
       className={`w-full max-w-sm py-2 px-3 flex flex-row gap-3 items-center rounded-xl cursor-pointer flex-shrink-0
                        ${
-        active
-          ? "bg-[#3390ec] dark:bg-[#8472dc]"
-          : "hover:bg-[#f4f4f5] dark:hover:bg-[#2c2c2c]"
-      }`}
+                         active
+                           ? "bg-[#3390ec] dark:bg-[#8472dc]"
+                           : "hover:bg-[#f4f4f5] dark:hover:bg-[#2c2c2c]"
+                       }`}
       role="button"
       tabIndex={0}
       onClick={onClick}
@@ -59,7 +57,7 @@ export const CAsideConversation: React.FC<CAsideConversationProps> = ({
               active ? "text-white" : "dark:text-white"
             }`}
           >
-            {roomName} {isDirectMessage ? "(DM)" : ""}
+            {roomName}
           </span>
           <span
             className={`text-xs ${

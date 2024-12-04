@@ -17,7 +17,13 @@ import {
   Chip,
 } from "@nextui-org/react";
 import { Button } from "@nextui-org/button";
-import { FaTrash, FaPaperPlane, FaUserPlus, FaUsers } from "react-icons/fa";
+import {
+  FaTrash,
+  FaPaperPlane,
+  FaUserPlus,
+  FaUsers,
+  FaTimes,
+} from "react-icons/fa";
 import { Input } from "@nextui-org/input";
 import { toast } from "react-hot-toast";
 
@@ -31,7 +37,14 @@ interface DotDropdownProps {
 }
 
 export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
-  const { selectedRoom, refreshRooms } = useMatrix();
+  const {
+    selectedRoom,
+    refreshRooms,
+    deleteDMRoom,
+    leaveGroupRoom,
+    deleteGroupRoom,
+    kickUserFromGroupRoom,
+  } = useMatrix();
 
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
@@ -47,10 +60,8 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
       isOwner: boolean;
     }[]
   >([]);
-
-  const client = MatrixService.getClient();
-  const myUserId = client.getUserId();
   const [isCurrentUserOwner, setIsCurrentUserOwner] = useState(false);
+  const [isKicking, setIsKicking] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     const searchUsers = async () => {
@@ -68,7 +79,10 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
           selectedRoom
             ?.getMembers()
             // @ts-ignore
-            .filter((member) => ["join", "invite"].includes(member.membership))
+            .filter((member) =>
+              // @ts-ignore
+              ["join", "invite"].includes(member.membership),
+            )
             .map((member) => member.userId) || [];
 
         const filteredResults = results.filter(
@@ -86,29 +100,106 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
     }
   }, [searchTerm, selectedRoom]);
 
+  // Fetch room members when the component mounts or when selectedRoom changes
+  useEffect(() => {
+    if (selectedRoom) {
+      fetchRoomMembers();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRoom]);
+
+  // Optionally, you can still fetch room members when opening the Members Modal
+  // if there are additional side effects or data needed.
+  // Otherwise, this useEffect can be removed.
+  /*
   useEffect(() => {
     if (isMembersModalOpen && selectedRoom) {
       fetchRoomMembers();
     }
   }, [isMembersModalOpen, selectedRoom]);
+  */
 
   if (!selectedRoom) {
     return null;
   }
 
-  const deleteRoom = async () => {
-    try {
-      await MatrixService.deleteRoom(selectedRoom.roomId);
-      window.location.reload();
-    } catch (error) {
-      toast.error("Failed to delete room");
+  /**
+   * Function to handle deleting a room based on its type and ownership.
+   * - For DM rooms: Permanently delete the DM room.
+   * - For Group rooms:
+   *   - If owner/admin: Fully delete the group room.
+   *   - If not owner/admin: Leave the group room.
+   */
+  const handleDeleteOrLeaveRoom = async () => {
+    if (!selectedRoom) {
+      toast.error("No room selected.");
+
+      return;
+    }
+
+    if (isGroupRoom) {
+      if (isCurrentUserOwner) {
+        // Confirm deletion
+        const confirmed = window.confirm(
+          "Are you sure you want to delete this group room? This action will remove all members.",
+        );
+
+        if (!confirmed) return;
+
+        try {
+          await deleteGroupRoom(selectedRoom.roomId);
+          toast.success("Group room deleted successfully.");
+          // Optionally, perform additional actions like navigating away or resetting state
+        } catch (error: any) {
+          //console.error(error);
+          toast.error(error.message || "Failed to delete group room.");
+        }
+      } else {
+        // Confirm leaving
+        const confirmed = window.confirm(
+          "Are you sure you want to leave this group room?",
+        );
+
+        if (!confirmed) return;
+
+        try {
+          await leaveGroupRoom(selectedRoom.roomId);
+          toast.success("Left the group room successfully.");
+          // Optionally, perform additional actions like navigating away or resetting state
+        } catch (error: any) {
+          //console.error(error);
+          toast.error(error.message || "Failed to leave group room.");
+        }
+      }
+    } else {
+      // DM Room
+      const confirmed = window.confirm(
+        "Are you sure you want to delete this DM room? This action cannot be undone.",
+      );
+
+      if (!confirmed) return;
+
+      try {
+        await deleteDMRoom(selectedRoom.roomId);
+        toast.success("DM room deleted successfully.");
+        // Optionally, perform additional actions like navigating away or resetting state
+      } catch (error: any) {
+        //console.error(error);
+        toast.error(error.message || "Failed to delete DM room.");
+      }
     }
   };
 
   // Function to invite user
   const handleAddUser = async (userId: string) => {
     try {
-      await MatrixService.inviteUserToRoom(selectedRoom!.roomId, userId);
+      if (!selectedRoom) {
+        toast.error("No room selected.");
+
+        return;
+      }
+
+      await MatrixService.inviteUserToRoom(selectedRoom.roomId, userId);
       toast.success(`User ${userId} invited to the room`);
       setSearchTerm(""); // Clear search term after inviting
       setSearchResults((prevResults) =>
@@ -127,6 +218,7 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
         },
       ]);
     } catch (error) {
+      //console.error(error);
       toast.error("Failed to invite user");
     }
   };
@@ -134,8 +226,14 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
   // Function to cancel invitation
   const handleCancelInvitation = async (userId: string) => {
     try {
+      if (!selectedRoom) {
+        toast.error("No room selected.");
+
+        return;
+      }
+
       await MatrixService.kickUserFromRoom(
-        selectedRoom!.roomId,
+        selectedRoom.roomId,
         userId,
         "Invitation cancelled by owner",
       );
@@ -146,6 +244,7 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
         prevMembers.filter((member) => member.userId !== userId),
       );
     } catch (error) {
+      //console.error(error);
       toast.error("Failed to cancel invitation");
     }
   };
@@ -166,6 +265,7 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
       "",
     );
     const roomCreator = createEvent?.getContent()?.creator;
+    const myUserId = MatrixService.getCurrentUserId();
 
     setIsCurrentUserOwner(myUserId === roomCreator);
 
@@ -191,8 +291,28 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
 
       return a.displayName.localeCompare(b.displayName);
     });
+
     // @ts-ignore
     setRoomMembers(membersData);
+  };
+
+  // Function to handle kicking a user and updating the state
+  const handleKickUser = async (userId: string, displayName: string) => {
+    setIsKicking((prev) => ({ ...prev, [userId]: true }));
+    try {
+      await kickUserFromGroupRoom(selectedRoom!.roomId, userId);
+      toast.success(`${displayName} has been kicked from the room.`);
+
+      // Update the roomMembers state by removing the kicked user
+      setRoomMembers((prevMembers) =>
+        prevMembers.filter((member) => member.userId !== userId),
+      );
+    } catch (error: any) {
+      //console.error(error);
+      toast.error(error.message || `Failed to kick ${displayName}.`);
+    } finally {
+      setIsKicking((prev) => ({ ...prev, [userId]: false }));
+    }
   };
 
   // Collect menu items
@@ -222,13 +342,17 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
 
   menuItems.push(
     <DropdownItem
-      key="delete"
-      className="text-[#F31260]"
+      key="deleteOrLeave"
+      className={`${isGroupRoom ? "text-[#F31260]" : "text-[#F31260]"}`}
       color="danger"
       startContent={<FaTrash className="w-4 h-4" />}
-      onClick={deleteRoom}
+      onClick={handleDeleteOrLeaveRoom}
     >
-      Delete
+      {isGroupRoom
+        ? isCurrentUserOwner
+          ? "Delete Group Room"
+          : "Leave Group Room"
+        : "Delete DM Room"}
     </DropdownItem>,
   );
 
@@ -246,52 +370,54 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
       </Dropdown>
 
       {/* Add User Modal */}
-      <Modal
-        isOpen={isAddUserModalOpen}
-        scrollBehavior="inside"
-        onClose={() => setIsAddUserModalOpen(false)}
-      >
-        <ModalContent>
-          <ModalHeader>Add User to Room</ModalHeader>
-          <ModalBody>
-            <Input
-              fullWidth
-              placeholder="Search users"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {searchResults.length > 0 ? (
-              searchResults.map((user) => (
-                <div
-                  key={user.user_id}
-                  className="flex items-center justify-between mt-2"
-                >
-                  <span>{user.display_name}</span>
-                  <Button
-                    size="sm"
-                    startContent={<FaPaperPlane />}
-                    variant="flat"
-                    onClick={() => handleAddUser(user.user_id)}
+      {isGroupRoom && (
+        <Modal
+          isOpen={isAddUserModalOpen}
+          scrollBehavior="inside"
+          onClose={() => setIsAddUserModalOpen(false)}
+        >
+          <ModalContent>
+            <ModalHeader>Add User to Room</ModalHeader>
+            <ModalBody>
+              <Input
+                fullWidth
+                placeholder="Search users"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchResults.length > 0 ? (
+                searchResults.map((user) => (
+                  <div
+                    key={user.user_id}
+                    className="flex items-center justify-between mt-2"
                   >
-                    Invite
-                  </Button>
-                </div>
-              ))
-            ) : (
-              <div className="mt-2 text-gray-500">No users found.</div>
-            )}
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              color="default"
-              variant="flat"
-              onClick={() => setIsAddUserModalOpen(false)}
-            >
-              Close
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+                    <span>{user.display_name}</span>
+                    <Button
+                      size="sm"
+                      startContent={<FaPaperPlane />}
+                      variant="flat"
+                      onClick={() => handleAddUser(user.user_id)}
+                    >
+                      Invite
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <div className="mt-2 text-gray-500">No users found.</div>
+              )}
+            </ModalBody>
+            <ModalFooter>
+              <Button
+                color="default"
+                variant="flat"
+                onClick={() => setIsAddUserModalOpen(false)}
+              >
+                Close
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      )}
 
       {/* Members Modal */}
       <Modal
@@ -314,33 +440,56 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
                       <span className="text-sm font-semibold"> (Owner)</span>
                     )}
                   </span>
-                  <div className="flex items-center gap-2">
-                    <Chip
-                      className="flex items-center"
-                      color={
-                        member.membership === "join"
-                          ? "success"
-                          : member.membership === "invite"
-                            ? "warning"
-                            : "default"
-                      }
-                    >
-                      <span>
-                        {member.membership === "join" && "Joined"}
-                        {member.membership === "invite" && "Invited"}
-                        {member.membership === "leave" && "Left"}
-                      </span>
+                  <Chip
+                    className="flex flex-row items-center"
+                    color={
+                      member.membership === "join"
+                        ? "success"
+                        : member.membership === "invite"
+                          ? "warning"
+                          : "default"
+                    }
+                  >
+                    <span className="flex flex-row items-center">
+                      {member.membership === "join" && "Joined"}
+                      {member.membership === "invite" && "Invited"}
+                      {member.membership === "leave" && "Left"}
                       {isCurrentUserOwner && member.membership === "invite" && (
                         <button
-                          className="ml-2 cursor-pointer"
+                          aria-label={`Cancel invitation for ${member.displayName}`}
+                          className="cursor-pointer ml-2"
                           type="button"
                           onClick={() => handleCancelInvitation(member.userId)}
                         >
-                          X
+                          <FaTimes className="w-3 h-3" />
                         </button>
                       )}
-                    </Chip>
-                  </div>
+                      {isCurrentUserOwner &&
+                        member.userId !== MatrixService.getCurrentUserId() &&
+                        !member.isOwner &&
+                        member.membership === "join" && (
+                          <button
+                            aria-label={`Kick ${member.displayName}`}
+                            className={`text-red-500 hover:text-red-700 ml-2 ${
+                              isKicking[member.userId]
+                                ? "opacity-50 cursor-not-allowed"
+                                : ""
+                            }`}
+                            disabled={isKicking[member.userId]}
+                            onClick={() =>
+                              !isKicking[member.userId] &&
+                              handleKickUser(member.userId, member.displayName)
+                            }
+                          >
+                            {isKicking[member.userId] ? (
+                              "Kicking..."
+                            ) : (
+                              <FaTimes className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
+                    </span>
+                  </Chip>
                 </div>
               ))
             ) : (

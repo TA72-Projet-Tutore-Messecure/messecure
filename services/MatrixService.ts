@@ -3,9 +3,9 @@
 "use client";
 
 import * as sdk from "matrix-js-sdk/lib/browser-index";
+import { Room } from "matrix-js-sdk";
 
 import { MatrixErrorParser } from "@/lib/matrixErrorParser";
-import { Room } from "matrix-js-sdk";
 
 class MatrixService {
   private static instance: MatrixService;
@@ -171,14 +171,19 @@ class MatrixService {
   /**
    * Create a new room.
    * @param roomName - The desired room name.
+   * @param isDirect - Whether the room is a direct message.
    * @returns The ID of the created room.
    */
-  async createRoom(roomName: string): Promise<string> {
+  async createRoom(
+    roomName: string,
+    isDirect: boolean = false,
+  ): Promise<string> {
     try {
       const response = await this.getClient().createRoom({
         // @ts-ignore
         visibility: "private",
         name: roomName,
+        is_direct: isDirect,
       });
 
       return response.room_id;
@@ -254,6 +259,20 @@ class MatrixService {
   }
 
   /**
+   * Get the power levels of a room.
+   * @param room - The Matrix room.
+   * @returns The power levels object.
+   */
+  public getRoomPowerLevels(room: Room): any {
+    const powerLevelsEvent = room.currentState.getStateEvents(
+      "m.room.power_levels",
+      "",
+    );
+
+    return powerLevelsEvent?.getContent() || {};
+  }
+
+  /**
    * Get an existing direct room with a user, considering both inviter and invitee scenarios.
    * @param userId - The user ID to check.
    * @returns The room object if exists; otherwise, null.
@@ -266,15 +285,18 @@ class MatrixService {
       return null;
     }
 
-    const directRoomsMap: { [userId: string]: string[] } = mDirectEvent.getContent();
+    const directRoomsMap: { [userId: string]: string[] } =
+      mDirectEvent.getContent();
     const roomIds = directRoomsMap[userId] || [];
 
     for (const roomId of roomIds) {
       const room = client.getRoom(roomId);
+
       if (room) {
         // Additionally check if the room is a DM room
         const isDirect = this.isDirectRoom(roomId);
         const isDM = this.isDMRoomInvitedMember(room);
+
         if (isDirect || isDM) {
           return room;
         }
@@ -282,16 +304,6 @@ class MatrixService {
     }
 
     return null;
-  }
-
-  /**
-   * Determine if a room is a direct message (DM) room.
-   * @param room - The Matrix room to check.
-   * @returns True if it's a DM room; otherwise, false.
-   */
-  public isDMRoomInvitedMember(room: Room): boolean {
-    const me = room.getMember(this.userId!);
-    return !!me?.getDMInviter();
   }
 
   /**
@@ -382,7 +394,9 @@ class MatrixService {
 
         throw new Error(
           `Declining invitation failed: ${parsedError?.message}`,
-          { cause: parsedError },
+          {
+            cause: parsedError,
+          },
         );
       } else {
         throw new Error("Declining invitation failed: Unknown error");
@@ -429,133 +443,7 @@ class MatrixService {
   }
 
   /**
-   * Delete a room for both users.
-   * @param roomId - The ID of the room to delete.
-   */
-  public async deleteRoom(roomId: string): Promise<void> {
-    try {
-      const client = this.getClient();
-      const room = client.getRoom(roomId);
-
-      if (!room) {
-        throw new Error("Room not found");
-      }
-
-      const myUserId = this.getCurrentUserId();
-
-      // Get all members in the room
-      const members = room.getJoinedMembers();
-
-      // Leave the room
-      await client.leave(roomId);
-
-      // Kick all other users from the room
-      for (const member of members) {
-        if (member.userId !== myUserId) {
-          try {
-            await client.kick(roomId, member.userId, "Room deleted");
-          } catch (error) {
-            // Ignore errors if user already left
-            console.warn(`Failed to kick user ${member.userId}:`, error);
-          }
-        }
-      }
-
-      // Forget the room to remove it from the room list
-      await client.forget(roomId);
-
-      // Remove roomId from m.direct account data
-      const mDirectEvent = client.getAccountData("m.direct");
-      if (mDirectEvent) {
-        const directRoomsMap: { [userId: string]: string[] } = mDirectEvent.getContent();
-
-        let updated = false;
-
-        for (const userId in directRoomsMap) {
-          const roomIds = directRoomsMap[userId];
-          const index = roomIds.indexOf(roomId);
-          if (index !== -1) {
-            roomIds.splice(index, 1);
-            updated = true;
-          }
-
-          // If no room IDs left for a user, delete the key
-          if (roomIds.length === 0) {
-            delete directRoomsMap[userId];
-            updated = true;
-          }
-        }
-
-        if (updated) {
-          await client.setAccountData("m.direct", directRoomsMap);
-        }
-      }
-
-      // Emit an event to update the room list in the application
-      // @ts-ignore
-      client.emit("deleteRoom", roomId);
-    } catch (error) {
-      if (error instanceof Error) {
-        const parsedError = MatrixErrorParser.parse(error.toString());
-
-        throw new Error(`Deleting room failed: ${parsedError?.message}`, {
-          cause: parsedError,
-        });
-      } else {
-        throw new Error("Deleting room failed: Unknown error");
-      }
-    }
-  }
-
-  /**
-   * Invite a user to a room.
-   * @param roomId - The ID of the room.
-   * @param userId - The ID of the user to invite.
-   */
-  public async inviteUserToRoom(roomId: string, userId: string): Promise<void> {
-    try {
-      await this.getClient().invite(roomId, userId);
-    } catch (error) {
-      if (error instanceof Error) {
-        const parsedError = MatrixErrorParser.parse(error.toString());
-
-        throw new Error(`Inviting user failed: ${parsedError?.message}`, {
-          cause: parsedError,
-        });
-      } else {
-        throw new Error("Inviting user failed: Unknown error");
-      }
-    }
-  }
-
-  /**
-   * Kick a user from a room.
-   * @param roomId - The ID of the room.
-   * @param userId - The ID of the user to kick.
-   * @param reason - The reason for kicking the user.
-   */
-  public async kickUserFromRoom(
-    roomId: string,
-    userId: string,
-    reason: string,
-  ): Promise<void> {
-    try {
-      await this.getClient().kick(roomId, userId, reason);
-    } catch (error) {
-      if (error instanceof Error) {
-        const parsedError = MatrixErrorParser.parse(error.toString());
-
-        throw new Error(`Kicking user failed: ${parsedError?.message}`, {
-          cause: parsedError,
-        });
-      } else {
-        throw new Error("Kicking user failed: Unknown error");
-      }
-    }
-  }
-
-  /**
-   * Deletes a message (redacts an event) in a room.
+   * Delete a message (redacts an event) in a room.
    * @param roomId - The ID of the room.
    * @param eventId - The ID of the event (message) to delete.
    */
@@ -565,6 +453,7 @@ class MatrixService {
     } catch (error) {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
+
         throw new Error(`Deleting message failed: ${parsedError?.message}`, {
           cause: parsedError,
         });
@@ -572,6 +461,17 @@ class MatrixService {
         throw new Error("Deleting message failed: Unknown error");
       }
     }
+  }
+
+  /**
+   * Determine if a room is a direct message (DM) room.
+   * @param room - The Matrix room to check.
+   * @returns True if it's a DM room; otherwise, false.
+   */
+  public isDMRoomInvitedMember(room: Room): boolean {
+    const me = room.getMember(this.userId!);
+
+    return !!me?.getDMInviter();
   }
 
   /**
@@ -600,33 +500,338 @@ class MatrixService {
     return false;
   }
 
-    /**
+  /**
+   * Delete a DM room permanently between users.
+   * @param roomId - The ID of the DM room to delete.
+   */
+  public async deleteDMRoom(roomId: string): Promise<void> {
+    try {
+      const client = this.getClient();
+      const room = client.getRoom(roomId);
+
+      if (!room) {
+        throw new Error("DM Room not found");
+      }
+
+      const myUserId = this.getCurrentUserId();
+
+      // Get all members in the room
+      const members = room.getJoinedMembers();
+
+      // Leave the room
+      await client.leave(roomId);
+
+      // Kick all other users from the room
+      for (const member of members) {
+        if (member.userId !== myUserId) {
+          try {
+            await client.kick(roomId, member.userId, "DM room deleted");
+          } catch (error) {
+            // Ignore errors if user already left
+            // console.warn(`Failed to kick user ${member.userId}:`, error);
+          }
+        }
+      }
+
+      // Forget the room to remove it from the room list
+      await client.forget(roomId);
+
+      // Remove roomId from m.direct account data
+      const mDirectEvent = client.getAccountData("m.direct");
+
+      if (mDirectEvent) {
+        const directRoomsMap: { [userId: string]: string[] } =
+          mDirectEvent.getContent();
+
+        let updated = false;
+
+        for (const userId in directRoomsMap) {
+          const roomIds = directRoomsMap[userId];
+          const index = roomIds.indexOf(roomId);
+
+          if (index !== -1) {
+            roomIds.splice(index, 1);
+            updated = true;
+          }
+
+          // If no room IDs left for a user, delete the key
+          if (roomIds.length === 0) {
+            delete directRoomsMap[userId];
+            updated = true;
+          }
+        }
+
+        if (updated) {
+          await client.setAccountData("m.direct", directRoomsMap);
+        }
+      }
+
+      // Emit an event to update the room list in the application
+      // @ts-ignore
+      client.emit("deleteRoom", roomId);
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+
+        throw new Error(`Deleting DM room failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
+      } else {
+        throw new Error("Deleting DM room failed: Unknown error");
+      }
+    }
+  }
+
+  /**
+   * Leave a group room (only if you are not the owner).
+   * @param roomId - The ID of the group room to leave.
+   */
+  public async leaveGroupRoom(roomId: string): Promise<void> {
+    try {
+      const client = this.getClient();
+      const room = client.getRoom(roomId);
+
+      if (!room) {
+        throw new Error("Group room not found");
+      }
+
+      const myUserId = this.getCurrentUserId();
+
+      // Retrieve power levels
+      const powerLevels = this.getRoomPowerLevels(room);
+
+      // Get the user's power level; default to users_default if not set
+      const myPowerLevel =
+        powerLevels.users?.[myUserId] ?? powerLevels.users_default ?? 0;
+
+      // Get the required power level to kick users; default to 50 if not set
+      const requiredPowerLevel = powerLevels.kick ?? 50;
+
+      if (myPowerLevel >= requiredPowerLevel) {
+        throw new Error(
+          "You are the owner/admin of this group room and cannot leave.",
+        );
+      }
+
+      // Leave the room
+      await client.leave(roomId);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Leaving group room failed: ${error.message}`, {
+          cause: error,
+        });
+      } else {
+        throw new Error("Leaving group room failed: Unknown error");
+      }
+    }
+  }
+
+  /**
+   * Kick a user from a group room (only if you are the owner).
+   * @param roomId - The ID of the group room.
+   * @param userId - The ID of the user to kick.
+   */
+  public async kickUserFromRoom(
+    roomId: string,
+    userId: string,
+    reason: string = "Kicked by room owner",
+  ): Promise<void> {
+    try {
+      const client = this.getClient();
+      const room = client.getRoom(roomId);
+
+      if (!room) {
+        throw new Error("Room not found");
+      }
+
+      const myUserId = this.getCurrentUserId();
+
+      // Retrieve power levels
+      const powerLevels = this.getRoomPowerLevels(room);
+
+      // Get the user's power level; default to users_default if not set
+      const myPowerLevel =
+        powerLevels.users?.[myUserId] ?? powerLevels.users_default ?? 0;
+
+      // Get the required power level to kick users; default to 50 if not set
+      const requiredPowerLevel = powerLevels.kick ?? 50;
+
+      if (myPowerLevel < requiredPowerLevel) {
+        throw new Error(
+          "You do not have permission to kick users from this group room.",
+        );
+      }
+
+      // Kick the user
+      await client.kick(roomId, userId, reason);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Kicking user failed: ${error.message}`, {
+          cause: error,
+        });
+      } else {
+        throw new Error("Kicking user failed: Unknown error");
+      }
+    }
+  }
+
+  /**
+   * Fully delete a group room (only if you are the owner, and that automatically kicks everybody from it).
+   * @param roomId - The ID of the group room to delete.
+   */
+  public async deleteGroupRoom(roomId: string): Promise<void> {
+    try {
+      const client = this.getClient();
+      const room = client.getRoom(roomId);
+
+      if (!room) {
+        throw new Error("Group room not found");
+      }
+
+      const myUserId = this.getCurrentUserId();
+
+      // Retrieve power levels
+      const powerLevels = this.getRoomPowerLevels(room);
+
+      // Get the user's power level; default to users_default if not set
+      const myPowerLevel =
+        powerLevels.users?.[myUserId] ?? powerLevels.users_default ?? 0;
+
+      // Get the required power level to kick users; default to 50 if not set
+      const requiredPowerLevel = powerLevels.kick ?? 50;
+
+      if (myPowerLevel < requiredPowerLevel) {
+        throw new Error(
+          "You do not have permission to delete this group room.",
+        );
+      }
+
+      // Get all members in the room
+      const members = room.getJoinedMembers();
+
+      // Kick all members except yourself
+      for (const member of members) {
+        if (member.userId !== myUserId) {
+          try {
+            await client.kick(
+              roomId,
+              member.userId,
+              "Group room deleted by owner.",
+            );
+          } catch (error) {
+            // Ignore errors if user already left or cannot be kicked
+            // console.warn(`Failed to kick user ${member.userId}:`, error);
+          }
+        }
+      }
+
+      // Leave the room
+      await client.leave(roomId);
+
+      // Forget the room to remove it from the room list
+      await client.forget(roomId);
+
+      // Remove roomId from m.direct account data if applicable
+      const mDirectEvent = client.getAccountData("m.direct");
+
+      if (mDirectEvent) {
+        const directRoomsMap: { [userId: string]: string[] } =
+          mDirectEvent.getContent();
+
+        let updated = false;
+
+        for (const userId in directRoomsMap) {
+          const roomIds = directRoomsMap[userId];
+          const index = roomIds.indexOf(roomId);
+
+          if (index !== -1) {
+            roomIds.splice(index, 1);
+            updated = true;
+          }
+
+          // If no room IDs left for a user, delete the key
+          if (roomIds.length === 0) {
+            delete directRoomsMap[userId];
+            updated = true;
+          }
+        }
+
+        if (updated) {
+          await client.setAccountData("m.direct", directRoomsMap);
+        }
+      }
+
+      // Emit an event to update the room list in the application
+      // @ts-ignore
+      client.emit("deleteRoom", roomId);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Deleting group room failed: ${error.message}`, {
+          cause: error,
+        });
+      } else {
+        throw new Error("Deleting group room failed: Unknown error");
+      }
+    }
+  }
+
+  /**
+   * Invite a user to a room.
+   * @param roomId - The ID of the room.
+   * @param userId - The ID of the user to invite.
+   */
+  public async inviteUserToRoom(roomId: string, userId: string): Promise<void> {
+    try {
+      const client = this.getClient();
+      const room = client.getRoom(roomId);
+
+      if (!room) {
+        throw new Error("Room not found");
+      }
+
+      await client.invite(roomId, userId);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Inviting user failed: ${error.message}`, {
+          cause: error,
+        });
+      } else {
+        throw new Error("Inviting user failed: Unknown error");
+      }
+    }
+  }
+
+  /**
    * Change the password of the current user.
    * @param oldPassword - The old password.
    * @param newPassword - The new password.
    */
-  async changePassword(oldPassword: string, newPassword: string): Promise<void> {
+  async changePassword(
+    oldPassword: string,
+    newPassword: string,
+  ): Promise<void> {
     const authDict = {
       type: "m.login.password",
       user: this.userId,
-      password: oldPassword
-    }
+      password: oldPassword,
+    };
 
     try {
       if (this.matrixClient) {
         await this.matrixClient.setPassword(authDict, newPassword, true);
       }
-    }catch (error) {
-        if (error instanceof Error) {
-          const parsedError = MatrixErrorParser.parse(error.toString());
-          throw new Error(`Updating password failed: ${parsedError?.message}`, {
-            cause: parsedError,
-          });
-        } else {
-          throw new Error("Updating password failed: Unknown error");
-        }
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+
+        throw new Error(`Changing password failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
+      } else {
+        throw new Error("Changing password failed: Unknown error");
       }
     }
+  }
 }
 
 export default MatrixService.getInstance();
