@@ -92,6 +92,7 @@ export const CAsideBurger = () => {
             <DropdownItem
               key="settings"
               startContent={<SettingsIcon className="w-[1.5em] h-[1.5em]" />}
+              onClick={() => router.push("/settings")}
             >
               Settings
             </DropdownItem>
