@@ -2,16 +2,20 @@
 
 import { useRouter } from "next/navigation";
 import React, { useState } from 'react';
-import { toast, Toaster } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import { Button, Divider, Input } from "@nextui-org/react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { Card, CardBody, CardHeader } from "@nextui-org/card";
 
 import MatrixService from "@/services/MatrixService";
 
+import AvatarSettings from './AvatarSettings';
+
 interface SettingsInfo {
     oldPassword: string;
     newPassword: string;
+    avatar: File | null;
+    displayName: string;
 }
 
 export default function Settings() {
@@ -21,6 +25,8 @@ export default function Settings() {
   const [settingsInfo, setSettingsInfo] = useState<SettingsInfo>({
     oldPassword: "",
     newPassword: "",
+    avatar: null,
+    displayName: "",
   });
 
   const toggleOldPwdVisibility = () => setIsOldPwdVisible(!isOldPwdVisible);
@@ -33,32 +39,67 @@ export default function Settings() {
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleChgPwdSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try{
       await MatrixService.changePassword(settingsInfo.oldPassword, settingsInfo.newPassword);
       toast.success("Password change successful!");
+      MatrixService.logout();
       router.push("/login"); // Redirect to login page after changing password
     } catch (error: any) {
       toast.error(error.message || "Password change failed. Please try again.");
     }
   };
 
-  const isValidPassword = (password: string) => {
-    // Add any specific validation for username if needed
-    return password.trim().length > 0;
+  const handleImageUpload = (file: File | null) => {
+    setSettingsInfo({
+      ...settingsInfo,
+      avatar: file,
+    });
   };
 
+  const handleChgAvatarSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (settingsInfo.avatar) {
+        await MatrixService.changeAvatar(settingsInfo.avatar);
+      } else {
+        toast.error("Please select an avatar to upload.");
+      }
+      toast.success("Avatar change successful!");
+    } catch (error: any) {
+      toast.error(error.message || "Avatar change failed. Please try again.");
+    }
+  }
+
+  const handleChgDisplayNameSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await MatrixService.changeDisplayName(settingsInfo.displayName);
+      toast.success("Display name change successful!");
+    } catch (error: any) {
+      toast.error(error.message || "Display name change failed. Please try again.");
+    }
+  };
+
+  const isValidPassword = (password: string) => {
+    return password.trim().length > 0;
+  };
+  
   return (
     <div className="flex items-center justify-center mt-16">
-      <Toaster />
       <Card className="min-w-96 shadow border-1 dark:border-0">
         <CardHeader className="flex flex-row justify-center">
+          <button
+            aria-label="back"
+            className="absolute left-3 focus:outline-none"
+            onClick={() => router.back()}>Back</button>
           <p className="text-md text-2xl">Settings</p>
         </CardHeader>
         <Divider />
         <CardBody className="w-full flex flex-col gap-3">
-          <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
+          <p>Password change</p>
+          <form className="flex flex-col gap-3" onSubmit={handleChgPwdSubmit}>
             <Input
               isRequired
               endContent={
@@ -110,11 +151,39 @@ export default function Settings() {
             <Button
               className="w-full"
               color="primary"
-              isDisabled={!isValidPassword(settingsInfo.oldPassword) || !isValidPassword(settingsInfo.newPassword)}
+              isDisabled={
+                !isValidPassword(settingsInfo.oldPassword)
+                || !isValidPassword(settingsInfo.newPassword)
+                || settingsInfo.oldPassword == settingsInfo.newPassword
+              }
               size="sm"
               type="submit"
             >
               Change Password
+            </Button>
+          </form>
+          <Divider />
+          <p>Avatar change</p>
+          <form className="flex flex-col gap-3" onSubmit={handleChgAvatarSubmit}>
+            <AvatarSettings onImageUpload={handleImageUpload} />
+            <Button className="w-full" color="primary" size="sm" type="submit">
+              Change Avatar
+            </Button>
+          </form>
+          <Divider />
+          <p>Display name change</p>
+          <form className="flex flex-col gap-3" onSubmit={handleChgDisplayNameSubmit}>
+            <Input
+              isRequired
+              label="Display Name"
+              name="displayName"
+              placeholder="Enter your new display name"
+              size="sm"
+              value={settingsInfo.displayName}
+              onChange={handleChange}
+            />
+            <Button className="w-full" color="primary" size="sm" type="submit">
+              Change Display Name
             </Button>
           </form>
         </CardBody>

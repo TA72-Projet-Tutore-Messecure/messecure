@@ -235,6 +235,7 @@ class MatrixService {
           .map((user) => ({
             user_id: user.user_id,
             display_name: user.display_name || user.user_id,
+            avatar_url: user.avatar_url,
           }));
       } else {
         return [];
@@ -576,6 +577,9 @@ class MatrixService {
       if (this.matrixClient) {
         await this.matrixClient.setPassword(authDict, newPassword, true);
       }
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
         throw new Error(`Changing password failed: ${parsedError?.message}`, {
           cause: parsedError,
         });
@@ -583,6 +587,65 @@ class MatrixService {
         throw new Error("Changing password failed: Unknown error");
       }
     }
+  }
+
+  async changeAvatar(avatar: File): Promise<void> {
+    try {
+      if (this.matrixClient) {
+        const response = await this.matrixClient.uploadContent(avatar, { type: "image/jpeg" })
+        await this.matrixClient.setAvatarUrl(response.content_uri);
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+
+        throw new Error(`Changing avatar failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
+      } else {
+        throw new Error("Changing avatar failed: Unknown error");
+      }
+    }
+  }
+
+  async getUserAvatarUrl(userId: string): Promise<string | null> {
+    try {
+      if (this.matrixClient) {
+        const profileInfo = await this.matrixClient.getProfileInfo(userId);
+        return profileInfo.avatar_url ?? null;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+
+        throw new Error(`Getting user avatar URL failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
+      } else {
+        throw new Error("Getting user avatar URL failed: Unknown error");
+      }
+    }
+  }
+
+  async changeDisplayName(displayName: string): Promise<void> {
+    try {
+      if (this.matrixClient) {
+        await this.matrixClient.setDisplayName(displayName);
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+
+        throw new Error(`Changing display name failed: ${parsedError?.message}`, {
+          cause: parsedError,
+        });
+      } else {
+        throw new Error("Changing display name failed: Unknown error");
+      }
+    }
+  }
 }
 
 export default MatrixService.getInstance();
