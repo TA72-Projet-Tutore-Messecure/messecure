@@ -42,8 +42,10 @@ export const MessageContainer: React.FC = () => {
     const myUserId = client.getUserId();
     const room = selectedRoom;
 
-    // Determine if the room is a direct message
-    const isDirectMessage = MatrixService.isDirectRoom(selectedRoom.roomId);
+    // Determine if the room is a direct message using both isDirectRoom and isDMRoomInvitedMember
+    const isDirectRoom = MatrixService.isDirectRoom(selectedRoom.roomId);
+    const isDM = MatrixService.isDMRoomInvitedMember(selectedRoom);
+    const isDirectMessage = isDirectRoom || isDM;
 
     // Function to update the 'otherUserJoined' state
     const updateOtherUserJoined = () => {
@@ -173,8 +175,10 @@ export const MessageContainer: React.FC = () => {
     );
   }
 
-  // Determine if the room is a direct message
-  const isDirectMessage = selectedRoom.getJoinedMemberCount() <= 2;
+  // Determine if the room is a direct message using both isDirectRoom and isDM
+  const isDirectRoom = MatrixService.isDirectRoom(selectedRoom.roomId);
+  const isDM = MatrixService.isDMRoomInvitedMember(selectedRoom);
+  const isDirectMessage = isDirectRoom || isDM;
 
   return (
     <div className="relative w-full h-full py-2 flex flex-col gap-3 overflow-y-auto max-h-[80vh]">

@@ -10,20 +10,20 @@ services:
       - ./synapse/homeserver.yaml:/data/homeserver.yaml
       - ./synapse/data:/data
     environment:
-      - SYNAPSE_SERVER_NAME=localhost
-      - SYNAPSE_REPORT_STATS=yes
-      - SYNAPSE_CONFIG_PATH=/data/homeserver.yaml
+      SYNAPSE_SERVER_NAME: localhost  # Replace with your actual domain
+      SYNAPSE_REPORT_STATS: 'yes'
+      SYNAPSE_CONFIG_PATH: /data/homeserver.yaml
     ports:
       - "8008:8008"
     restart: unless-stopped
 
   postgres:
-    image: docker.io/postgres:14-alpine
+    image: postgres:14-alpine
     container_name: messecure-db
     environment:
-      - POSTGRES_USER=synapse
-      - POSTGRES_PASSWORD=aComplexPassphraseNobodyCanGuess
-      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+      POSTGRES_USER: synapse
+      POSTGRES_PASSWORD: aComplexPassphraseNobodyCanGuess  # Consider using Docker secrets for sensitive data
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -32,19 +32,20 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: production  # ou 'production' selon vos besoins
+      target: runner  # Specifies the final stage in the Dockerfile
     container_name: messecure-app
-    volumes:
-      - ./:/app
-      - /app/node_modules
     ports:
       - "3000:3000"
     depends_on:
       - synapse
+      - postgres
     environment:
-      - NODE_ENV=development
+      NODE_ENV: production
+      # Add other environment variables as needed, e.g.,
+      # DATABASE_URL: postgres://synapse:aComplexPassphraseNobodyCanGuess@postgres:5432/synapse
+      # SYNAPSE_URL: http://synapse:8008
     restart: unless-stopped
 
-# At the end of your docker-compose.yml
 volumes:
   postgres_data:
+    driver: local

@@ -13,6 +13,7 @@ import { Room, MatrixEvent, SyncState } from "matrix-js-sdk";
 import { toast } from "react-hot-toast";
 
 import MatrixService from "@/services/MatrixService";
+import { usePathname, useRouter } from "next/navigation";
 
 interface MatrixContextProps {
   rooms: Room[];
@@ -23,6 +24,10 @@ interface MatrixContextProps {
   deleteMessage: (eventId: string) => Promise<void>;
   refreshRooms: () => void;
   clientReady: boolean;
+  deleteDMRoom: (roomId: string) => Promise<void>;
+  leaveGroupRoom: (roomId: string) => Promise<void>;
+  kickUserFromGroupRoom: (roomId: string, userId: string) => Promise<void>;
+  deleteGroupRoom: (roomId: string) => Promise<void>;
 }
 
 const MatrixContext = createContext<MatrixContextProps | undefined>(undefined);
@@ -53,6 +58,8 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [messages, setMessages] = useState<MatrixEvent[]>([]);
   const [clientReady, setClientReady] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
 
   /**
    * Refreshes the list of rooms by fetching them from the Matrix client
@@ -79,8 +86,10 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Check if it's a direct message room
       const isDirect = MatrixService.isDirectRoom(room.roomId);
+      const isDM = MatrixService.isDMRoomInvitedMember(room);
+      const direct = isDirect || isDM;
 
-      if (isDirect) {
+      if (direct) {
         const members = room.getMembers();
         const otherMembers = members.filter((member) => member.userId !== myUserId);
 
@@ -136,25 +145,6 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
     );
 
     setRooms(allRooms);
-
-
-    // Log room data
-    allRooms.forEach((room) => {
-      const roomId = room.roomId;
-      const roomName = room.name || roomId;
-      const members = room.getMembers().map((member) => ({
-        userId: member.userId,
-        membership: member.membership,
-      }));
-      const isDirect = MatrixService.isDirectRoom(roomId);
-
-      console.log("Room Data:", {
-        roomId,
-        roomName,
-        isDirect,
-        members,
-      });
-    });
   }, []);
 
   /**
@@ -181,6 +171,9 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
       setMessages(timeline);
     } else {
       setMessages([]);
+    }
+    if (pathname !== "/chat") {
+      router.push("/chat");
     }
   }, []);
 
@@ -220,6 +213,94 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     },
     [selectedRoom]
+  );
+
+  /**
+   * Deletes a DM room permanently.
+   * @param roomId - The ID of the DM room to delete.
+   */
+  const deleteDMRoom = useCallback(
+    async (roomId: string) => {
+      try {
+        await MatrixService.deleteDMRoom(roomId);
+        toast.success("DM room deleted successfully.");
+        await refreshRooms();
+
+        // If the deleted room was selected, deselect it
+        if (selectedRoom?.roomId === roomId) {
+          selectRoom(null);
+        }
+      } catch (error: any) {
+        //console.error(error);
+        toast.error(error.message || "Failed to delete DM room.");
+      }
+    },
+    [refreshRooms, selectedRoom, selectRoom]
+  );
+
+  /**
+   * Leaves a group room (only if not the owner/admin).
+   * @param roomId - The ID of the group room to leave.
+   */
+  const leaveGroupRoom = useCallback(
+    async (roomId: string) => {
+      try {
+        await MatrixService.leaveGroupRoom(roomId);
+        toast.success("Left the group room successfully.");
+        await refreshRooms();
+
+        // If the left room was selected, deselect it
+        if (selectedRoom?.roomId === roomId) {
+          selectRoom(null);
+        }
+      } catch (error: any) {
+        //console.error(error);
+        toast.error(error.message || "Failed to leave group room.");
+      }
+    },
+    [refreshRooms, selectedRoom, selectRoom]
+  );
+
+  /**
+   * Kicks a user from a group room (only if you are the owner/admin).
+   * @param roomId - The ID of the group room.
+   * @param userId - The ID of the user to kick.
+   */
+  const kickUserFromGroupRoom = useCallback(
+    async (roomId: string, userId: string) => {
+      try {
+        await MatrixService.kickUserFromRoom(roomId, userId);
+        toast.success(`User ${userId} kicked successfully.`);
+        // Optionally, refresh messages or rooms if needed
+      } catch (error: any) {
+        //console.error(error);
+        toast.error(error.message || "Failed to kick user from group room.");
+      }
+    },
+    []
+  );
+
+  /**
+   * Deletes a group room (only if you are the owner/admin).
+   * @param roomId - The ID of the group room to delete.
+   */
+  const deleteGroupRoom = useCallback(
+    async (roomId: string) => {
+      try {
+        await MatrixService.deleteGroupRoom(roomId);
+        toast.success("Group room deleted successfully.");
+        await refreshRooms();
+
+        // If the deleted room was selected, deselect it
+        if (selectedRoom?.roomId === roomId) {
+          selectRoom(null);
+        }
+      } catch (error: any) {
+        //console.error(error);
+        toast.error(error.message || "Failed to delete group room.");
+      }
+    },
+    [refreshRooms, selectedRoom, selectRoom]
   );
 
   /**
@@ -268,7 +349,10 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
      * @param room - The Room where the event occurred.
      */
     const onRoomTimeline = (event: MatrixEvent, room: Room) => {
-      if (room.roomId === selectedRoom?.roomId && isMessageEvent(event)) {
+      if (
+        room.roomId === selectedRoom?.roomId &&
+        isMessageEvent(event)
+      ) {
         setMessages((prevMessages) => [...prevMessages, event]);
       }
     };
@@ -305,6 +389,61 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, [clientReady, refreshRooms]);
 
+  /**
+   * Listens for room deletion events to update the room list.
+   */
+  useEffect(() => {
+    if (!clientReady) return;
+
+    const client = MatrixService.getClient();
+
+    /**
+     * Handler for room deletion.
+     * @param roomId - The ID of the deleted room.
+     */
+    const onDeleteRoom = (roomId: string) => {
+      setRooms((prevRooms) => prevRooms.filter((room) => room.roomId !== roomId));
+
+      // If the deleted room was selected, deselect it
+      if (selectedRoom?.roomId === roomId) {
+        setSelectedRoom(null);
+        setMessages([]);
+      }
+    };
+    // @ts-ignore
+    client.on("deleteRoom", onDeleteRoom);
+
+    return () => {
+      // @ts-ignore
+      client.removeListener("deleteRoom", onDeleteRoom);
+    };
+  }, [clientReady, selectedRoom]);
+
+  /**
+   * Listens for new read receipts to update message statuses.
+   */
+  useEffect(() => {
+    if (!clientReady) return;
+
+    const client = MatrixService.getClient();
+
+    /**
+     * Handler for receipt events.
+     */
+    const handleReceiptEvent = () => {
+      // Implement logic to update message statuses based on read receipts
+      // This might involve re-fetching messages or updating state accordingly
+    };
+
+    // @ts-ignore
+    client.on("Room.receipt", handleReceiptEvent);
+
+    return () => {
+      // @ts-ignore
+      client.removeListener("Room.receipt", handleReceiptEvent);
+    };
+  }, [clientReady]);
+
   return (
     <MatrixContext.Provider
       value={{
@@ -316,6 +455,10 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
         deleteMessage,
         refreshRooms,
         clientReady,
+        deleteDMRoom,
+        leaveGroupRoom,
+        kickUserFromGroupRoom,
+        deleteGroupRoom,
       }}
     >
       {children}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import { toast } from "react-hot-toast";
 import { Button, Divider, Input } from "@nextui-org/react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
@@ -41,8 +41,11 @@ export default function Settings() {
 
   const handleChgPwdSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try{
-      await MatrixService.changePassword(settingsInfo.oldPassword, settingsInfo.newPassword);
+    try {
+      await MatrixService.changePassword(
+        settingsInfo.oldPassword,
+        settingsInfo.newPassword,
+      );
       toast.success("Password change successful!");
       MatrixService.logout();
       router.push("/login"); // Redirect to login page after changing password

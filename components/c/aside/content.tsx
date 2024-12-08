@@ -48,6 +48,7 @@ export const CAsideContent: React.FC<CAsideContentProps> = ({
       await refreshRooms();
       selectRoom(roomId);
     } catch (error) {
+      //console.error(error);
       toast.error("Failed to accept invitation");
     }
   };
@@ -62,6 +63,7 @@ export const CAsideContent: React.FC<CAsideContentProps> = ({
         selectRoom(null);
       }
     } catch (error) {
+      //console.error(error);
       toast.error("Failed to decline invitation");
     }
   };
@@ -84,22 +86,31 @@ export const CAsideContent: React.FC<CAsideContentProps> = ({
               onClick={() => handleStartDM(user.user_id)}
             />
           ))
-        : rooms.map((room) => (
-            <CAsideConversation
-              key={room.roomId}
-              active={selectedRoom?.roomId === room.roomId}
-              room={room}
-              onAccept={() => handleAcceptInvitation(room.roomId)}
-              onClick={() => {
-                if (room.getMyMembership() === "invite") {
-                  // Do nothing on click; user must accept or decline
-                } else {
-                  selectRoom(room.roomId);
-                }
-              }}
-              onDecline={() => handleDeclineInvitation(room.roomId)}
-            />
-          ))}
+        : rooms.map((room) => {
+            // Determine if the room is a direct message
+            const isDirectRoom = MatrixService.isDirectRoom(room.roomId);
+            const isDM = MatrixService.isDMRoomInvitedMember(room);
+            const isDirectMessage = isDirectRoom || isDM;
+
+            return (
+              <CAsideConversation
+                key={room.roomId}
+                active={selectedRoom?.roomId === room.roomId}
+                // @ts-ignore
+                isDirectMessage={isDirectMessage} // Pass this prop if needed
+                room={room}
+                onAccept={() => handleAcceptInvitation(room.roomId)}
+                onClick={() => {
+                  if (room.getMyMembership() === "invite") {
+                    // Do nothing on click; user must accept or decline
+                  } else {
+                    selectRoom(room.roomId);
+                  }
+                }}
+                onDecline={() => handleDeclineInvitation(room.roomId)}
+              />
+            );
+          })}
     </div>
   );
 };

@@ -19,11 +19,13 @@ export const ChatHeader: React.FC = () => {
 
   const roomName = selectedRoom.name || selectedRoom.roomId;
 
-  // Use the isDirectRoom method from MatrixService
+  // Use the isDirectRoom and isDMRoomInvitedMember methods from MatrixService
   const isDirectRoom = MatrixService.isDirectRoom(selectedRoom.roomId);
+  const isDM = MatrixService.isDMRoomInvitedMember(selectedRoom);
+  const direct = isDirectRoom || isDM;
 
   // If it's not a direct room, it's a group room
-  const isGroupRoom = !isDirectRoom;
+  const isGroupRoom = !direct;
 
   const displayRoomName = isGroupRoom ? `${roomName} (group)` : roomName;
 
