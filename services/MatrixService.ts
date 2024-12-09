@@ -6,6 +6,8 @@ import * as sdk from "matrix-js-sdk/lib/browser-index";
 import { Room } from "matrix-js-sdk";
 
 import { MatrixErrorParser } from "@/lib/matrixErrorParser";
+import { RoomMessageEventContent } from "matrix-js-sdk/lib/@types/events";
+import { EventType, MsgType, TimelineEvents } from "matrix-js-sdk/lib/@types/event";
 
 class MatrixService {
   private static instance: MatrixService;
@@ -830,6 +832,31 @@ class MatrixService {
       } else {
         throw new Error("Changing password failed: Unknown error");
       }
+    }
+  }
+
+  async uploadFile(roomId: string, file: File) : Promise<void> {
+    const client = this.getClient();
+    try {
+      const uploadUrl = await client.uploadContent(file, {
+        name: file.name,
+        type: file.type,
+      });
+
+      const content: RoomMessageEventContent = {
+        msgtype: MsgType.File,
+        body: file.name,
+        url: uploadUrl.content_uri,
+        info: {
+          mimetype: file.type,
+          size: file.size,
+        },
+      };
+
+      await client.sendEvent(roomId, EventType.RoomMessage, content);
+    } catch(error) {
+      console.error("Error uploading file:", error);
+      throw new Error("File upload failed");
     }
   }
 }
