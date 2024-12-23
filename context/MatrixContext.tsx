@@ -304,6 +304,11 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
     [refreshRooms, selectedRoom, selectRoom]
   );
 
+  /**
+   * Uploads a file to the currently selected room.
+   * @param roomId - The ID of the room to upload the file to.
+   * @param file - The File object to upload.
+   */
   const uploadFile = useCallback(
     async (roomId: string, file: File) => {
       try {

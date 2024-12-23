@@ -836,6 +836,11 @@ class MatrixService {
     }
   }
 
+  /**
+   * Upload a file to a room.
+   * @param roomId - The ID of the room.
+   * @param file - The file to upload.
+   */
   async uploadFile(roomId: string, file: File) : Promise<void> {
     const client = this.getClient();
 
