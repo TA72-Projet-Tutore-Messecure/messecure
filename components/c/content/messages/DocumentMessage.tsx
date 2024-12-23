@@ -17,7 +17,6 @@ import MatrixService from "@/services/MatrixService";
 
 export const DocumentMessage: React.FC<DocumentMessageProps> = ({
   eventId,
-  message,
   isRedacted,
   time,
   target,
@@ -26,12 +25,29 @@ export const DocumentMessage: React.FC<DocumentMessageProps> = ({
   documentSize,
   documentLink,
 }) => {
-  // Function to handle document click
-  const handleDocumentClick = () => {
-    const httpUrl = MatrixService.getHttpUrlForMxc(documentLink);
+  // Function to handle document click and download
+  const handleDocumentClick = async () => {
+    try {
+      const blob = await MatrixService.fetchMediaAsBlob(documentLink);
 
-    if (httpUrl !== "#") window.open(httpUrl, "_blank");
-    else toast.error(`Invalid document link: ${documentLink}`);
+      // Create a temporary URL for the Blob
+      const url = window.URL.createObjectURL(blob);
+
+      // Create a temporary anchor element to trigger download
+      const a = document.createElement("a");
+
+      a.href = url;
+      a.download = documentName;
+      document.body.appendChild(a);
+      a.click();
+
+      // Cleanup
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      // console.error("Download failed:", error);
+      toast.error("Failed to download the document.");
+    }
   };
 
   // If the message is redacted, display a placeholder

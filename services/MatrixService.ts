@@ -889,14 +889,45 @@ class MatrixService {
 
       const baseUrl = this.getClient().getHomeserverUrl().replace(/\/+$/, ""); // Remove trailing slashes
 
-      // Construct the download URL
-      return `${baseUrl}/_matrix/media/v3/download/${encodeURIComponent(
+      // Construct the download URL in the format:
+      // /_matrix/client/v1/media/download/{serverName}/{mediaId}
+      return `${baseUrl}/_matrix/client/v1/media/download/${encodeURIComponent(
         serverName
       )}/${encodeURIComponent(mediaId)}`;
     } catch (error) {
-      console.error("Failed to convert mxc URI to HTTP URL:", error);
-
       return "#"; // Fallback URL
+    }
+  }
+
+  /**
+   * Fetches media content as a Blob using the Matrix client.
+   * @param mxcUri - The mxc:// URI of the media.
+   * @returns A Promise that resolves to the media Blob.
+   */
+  async fetchMediaAsBlob(mxcUri: string): Promise<Blob> {
+    try {
+      const httpUrl = this.getHttpUrlForMxc(mxcUri);
+
+      if (httpUrl === "#") {
+        throw new Error("Invalid media URI");
+      }
+
+      const response = await fetch(httpUrl, {
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch media: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+
+      return blob;
+    } catch (error) {
+      // console.error("Error fetching media as Blob:", error);
+      throw new Error("Failed to download media");
     }
   }
 }
