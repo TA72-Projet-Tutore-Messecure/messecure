@@ -5,10 +5,10 @@
 
 import * as sdk from "matrix-js-sdk/lib/browser-index";
 import { Room } from "matrix-js-sdk";
+import { RoomMessageEventContent } from "matrix-js-sdk/lib/@types/events";
+import { EventType, MsgType } from "matrix-js-sdk/lib/@types/event";
 
 import { MatrixErrorParser } from "@/lib/matrixErrorParser";
-import { RoomMessageEventContent } from "matrix-js-sdk/lib/@types/events";
-import { EventType, MsgType, TimelineEvents } from "matrix-js-sdk/lib/@types/event";
 
 class MatrixService {
   private static instance: MatrixService;
@@ -862,7 +862,7 @@ class MatrixService {
 
       await client.sendEvent(roomId, EventType.RoomMessage, content);
     } catch(error) {
-      console.error("Error uploading file:", error);
+      // console.error("Error uploading file:", error);
       throw new Error("File upload failed");
     }
   }
