@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { MatrixEvent, RoomMember, Room } from "matrix-js-sdk";
 
 import { BaseMessage } from "@/components/c/content/messages/BaseMessage";
+import { DocumentMessage } from "@/components/c/content/messages/DocumentMessage"; // Import DocumentMessage
 import { MessageStatus, MessageTarget } from "@/types/messages";
 import MatrixService from "@/services/MatrixService";
 import { useMatrix } from "@/context/MatrixContext";
@@ -13,13 +14,14 @@ import { useMatrix } from "@/context/MatrixContext";
 export const MessageContainer: React.FC = () => {
   const { messages, selectedRoom } = useMatrix();
 
-  // Hooks must be called unconditionally at the top level
+  // Refs and state hooks
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [otherUserJoined, setOtherUserJoined] = useState(true);
   const [messageStatuses, setMessageStatuses] = useState<{
     [eventId: string]: MessageStatus;
   }>({});
 
+  // Scroll to bottom whenever messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -30,6 +32,7 @@ export const MessageContainer: React.FC = () => {
     }
   };
 
+  // Effect to handle room selection and event listeners
   useEffect(() => {
     if (!selectedRoom) {
       setOtherUserJoined(true);
@@ -42,7 +45,7 @@ export const MessageContainer: React.FC = () => {
     const myUserId = client.getUserId();
     const room = selectedRoom;
 
-    // Determine if the room is a direct message using both isDirectRoom and isDMRoomInvitedMember
+    // Determine if the room is a direct message
     const isDirectRoom = MatrixService.isDirectRoom(selectedRoom.roomId);
     const isDM = MatrixService.isDMRoomInvitedMember(selectedRoom);
     const isDirectMessage = isDirectRoom || isDM;
@@ -50,7 +53,7 @@ export const MessageContainer: React.FC = () => {
     // Function to update the 'otherUserJoined' state
     const updateOtherUserJoined = () => {
       if (!isDirectMessage) {
-        // For group rooms, we don't need to check if other users have joined
+        // For group rooms, no need to check other users
         setOtherUserJoined(true);
 
         return;
@@ -61,7 +64,7 @@ export const MessageContainer: React.FC = () => {
         (member) => member.userId !== myUserId,
       );
 
-      // Check if any of the other members have joined
+      // Check if any other member has joined
       const otherUserHasJoined = otherMembers.some(
         (member) => member.membership === "join",
       );
@@ -96,7 +99,7 @@ export const MessageContainer: React.FC = () => {
             newStatuses[event.getId()!] = MessageStatus.SENT;
           }
         } else {
-          // Messages sent by other users
+          // Messages sent by others
           newStatuses[event.getId()!] = MessageStatus.READ;
         }
       });
@@ -121,7 +124,7 @@ export const MessageContainer: React.FC = () => {
     // Initial status update
     updateMessageStatuses();
 
-    // Listen for membership changes
+    // Event listeners
     const handleMemberEvent = (event: MatrixEvent, member: RoomMember) => {
       if (member.userId !== myUserId) {
         if (member.membership === "join" || member.membership === "leave") {
@@ -131,18 +134,10 @@ export const MessageContainer: React.FC = () => {
       }
     };
 
-    // @ts-ignore
-    room.on("RoomMember.membership", handleMemberEvent);
-
-    // Listen for read receipts
     const handleReceiptEvent = () => {
       updateMessageStatuses();
     };
 
-    // @ts-ignore
-    room.on("Room.receipt", handleReceiptEvent);
-
-    // Listen for new messages
     const handleRoomTimeline = (event: MatrixEvent, room: Room) => {
       if (
         room.roomId === selectedRoom?.roomId &&
@@ -152,10 +147,15 @@ export const MessageContainer: React.FC = () => {
       }
     };
 
+    // Attach listeners
+    // @ts-ignore
+    room.on("RoomMember.membership", handleMemberEvent);
+    // @ts-ignore
+    room.on("Room.receipt", handleReceiptEvent);
     // @ts-ignore
     room.on("Room.timeline", handleRoomTimeline);
 
-    // Clean up listeners on unmount or when room changes
+    // Cleanup listeners on unmount or when room changes
     return () => {
       // @ts-ignore
       room.removeListener("RoomMember.membership", handleMemberEvent);
@@ -166,7 +166,7 @@ export const MessageContainer: React.FC = () => {
     };
   }, [selectedRoom, messages]);
 
-  // After hooks and effects, you can conditionally render
+  // Conditional rendering when no room is selected
   if (!selectedRoom) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -175,13 +175,14 @@ export const MessageContainer: React.FC = () => {
     );
   }
 
-  // Determine if the room is a direct message using both isDirectRoom and isDM
+  // Determine if the room is a direct message
   const isDirectRoom = MatrixService.isDirectRoom(selectedRoom.roomId);
   const isDM = MatrixService.isDMRoomInvitedMember(selectedRoom);
   const isDirectMessage = isDirectRoom || isDM;
 
   return (
     <div className="relative w-full h-full py-2 flex flex-col gap-3 overflow-y-auto max-h-[80vh]">
+      {/* Notification if the other user hasn't joined in a direct message */}
       {!otherUserJoined && isDirectMessage && (
         <div className="w-full flex flex-row justify-center">
           <div className="relative text-black bg-orange-200 dark:text-white dark:!bg-red-600 rounded-xl px-4 py-2 flex flex-col max-w-[43%] gap-1">
@@ -189,10 +190,12 @@ export const MessageContainer: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Render each message */}
       {messages.map((event: MatrixEvent) => {
         const sender = event.getSender();
         const content = event.getContent();
-        let message = content.body || "";
+        const msgType = content.msgtype;
         const time = event.getDate()?.toLocaleTimeString() || "";
         const target =
           sender === MatrixService.getClient().getUserId()
@@ -203,9 +206,47 @@ export const MessageContainer: React.FC = () => {
         // Check if the event is redacted (deleted)
         const isRedacted = event.isRedacted();
 
-        if (isRedacted) {
-          message = "message deleted";
+        if (msgType === "m.file") {
+          // It's a file message, render DocumentMessage
+          const documentName = content.body || "Untitled";
+          const documentSize = content.info?.size
+            ? formatFileSize(content.info.size)
+            : "Unknown size";
+          const documentLink = content.url || "#";
+
+          return (
+            <DocumentMessage
+              key={event.getId()}
+              documentLink={documentLink}
+              documentName={documentName}
+              documentSize={documentSize}
+              eventId={event.getId()!} // Passing eventId
+              isRedacted={isRedacted} // Passing isRedacted
+              message={documentName} // Passing message (can be customized)
+              status={status}
+              target={target}
+              time={time}
+            />
+          );
         }
+
+        if (isRedacted) {
+          // Render BaseMessage for redacted messages
+          return (
+            <BaseMessage
+              key={event.getId()}
+              eventId={event.getId()!}
+              isRedacted={isRedacted}
+              message="Message deleted"
+              status={status}
+              target={target}
+              time={time}
+            />
+          );
+        }
+
+        // For other message types, use BaseMessage
+        const message = content.body || "";
 
         return (
           <BaseMessage
@@ -219,7 +260,24 @@ export const MessageContainer: React.FC = () => {
           />
         );
       })}
+
+      {/* Ref to scroll to the bottom */}
       <div ref={messagesEndRef} />
     </div>
   );
+};
+
+// Helper function to format file size
+const formatFileSize = (sizeInBytes: number): string => {
+  if (sizeInBytes >= 1e9) {
+    return `${(sizeInBytes / 1e9).toFixed(2)} GB`;
+  }
+  if (sizeInBytes >= 1e6) {
+    return `${(sizeInBytes / 1e6).toFixed(2)} MB`;
+  }
+  if (sizeInBytes >= 1e3) {
+    return `${(sizeInBytes / 1e3).toFixed(2)} KB`;
+  }
+
+  return `${sizeInBytes} Bytes`;
 };

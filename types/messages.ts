@@ -22,8 +22,8 @@ export interface BaseMessageProps {
 // types.ts (add the following)
 export interface DocumentMessageProps extends BaseMessageProps {
   documentName: string;
-  documentSize: string; // e.g., '2 MB'
-  documentLink: string; // URL to redirect when clicked
+  documentSize: string;
+  documentLink: string;
 }
 
 // types.ts (add the following)

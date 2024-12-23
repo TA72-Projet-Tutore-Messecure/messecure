@@ -866,6 +866,39 @@ class MatrixService {
       throw new Error("File upload failed");
     }
   }
+
+  /**
+   * Converts an mxc:// URI to an HTTP(S) URL.
+   * @param mxcUri - The mxc URI to convert.
+   * @returns The corresponding HTTP(S) URL.
+   */
+  public getHttpUrlForMxc(mxcUri: string): string {
+    try {
+      if (!mxcUri.startsWith("mxc://")) {
+        throw new Error("Invalid mxc URI");
+      }
+
+      // Parse the mxc URI
+      const parts = mxcUri.replace("mxc://", "").split("/");
+      const serverName = parts.shift();
+      const mediaId = parts.join("/");
+
+      if (!serverName || !mediaId) {
+        throw new Error("Invalid mxc URI structure");
+      }
+
+      const baseUrl = this.getClient().getHomeserverUrl().replace(/\/+$/, ""); // Remove trailing slashes
+
+      // Construct the download URL
+      return `${baseUrl}/_matrix/media/v3/download/${encodeURIComponent(
+        serverName
+      )}/${encodeURIComponent(mediaId)}`;
+    } catch (error) {
+      console.error("Failed to convert mxc URI to HTTP URL:", error);
+
+      return "#"; // Fallback URL
+    }
+  }
 }
 
 export default MatrixService.getInstance();
