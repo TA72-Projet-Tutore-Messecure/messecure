@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 // services/MatrixService.ts
 
 "use client";
@@ -837,6 +838,7 @@ class MatrixService {
 
   async uploadFile(roomId: string, file: File) : Promise<void> {
     const client = this.getClient();
+
     try {
       const uploadUrl = await client.uploadContent(file, {
         name: file.name,
