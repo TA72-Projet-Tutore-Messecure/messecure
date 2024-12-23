@@ -3,8 +3,8 @@
 "use client";
 
 import { Avatar } from "@nextui-org/react";
-import React from "react";
-import { Room } from "matrix-js-sdk";
+import React, { useEffect, useState } from "react";
+import { Room, RoomMember } from "matrix-js-sdk";
 import { FaCheck, FaTrash } from "react-icons/fa"; // Ensure you have these icons
 
 import MatrixService from "@/services/MatrixService";
@@ -29,16 +29,40 @@ export const CAsideConversation: React.FC<CAsideConversationProps> = ({
   const lastMessage = lastEvent?.getContent()?.body || "";
   const lastTimestamp = lastEvent?.getDate()?.toLocaleTimeString() || "";
   const membership = room.getMyMembership();
-  const members = room.getMembers();
+  const members = room.getJoinedMembers();
 
-  let avatarUrl = null;
-  if (members.length == 2) {
-    if (members[0].userId != MatrixService.getClient().getUserId()) {
-      avatarUrl = members[0].getAvatarUrl(MatrixService.getClient().getHomeserverUrl(), 100, 100, "scale", false, false);
-    } else {
-      avatarUrl = members[1].getAvatarUrl(MatrixService.getClient().getHomeserverUrl(), 100, 100, "scale", false, false);
-    }
-  }
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchAvatar = async () => {
+      if (members.length === 2) {
+        const client = MatrixService.getClient();
+        const myUserId = client.getUserId();
+        const otherMember: RoomMember =
+          members[0].userId !== myUserId ? members[0] : members[1];
+
+        const blobUrl = await MatrixService.getUserAvatarThumbnail(otherMember);
+
+        if (isMounted) {
+          setAvatarUrl(blobUrl);
+        }
+      } else {
+        setAvatarUrl(null); // For group rooms or if no avatar
+      }
+    };
+
+    fetchAvatar();
+
+    return () => {
+      isMounted = false;
+      // Revoke Blob URL to free memory
+      if (avatarUrl) {
+        URL.revokeObjectURL(avatarUrl);
+      }
+    };
+  }, [room, members]);
 
   return (
     <div
@@ -60,7 +84,11 @@ export const CAsideConversation: React.FC<CAsideConversationProps> = ({
     >
       <div>
         {avatarUrl ? (
-          <Avatar src={avatarUrl} alt="User Avatar" className="w-14 h-14 min-w-14 min-h-14 rounded-full" />
+          <Avatar
+            alt="User Avatar"
+            className="w-14 h-14 min-w-14 min-h-14 rounded-full"
+            src={avatarUrl}
+          />
         ) : (
           <Avatar
             className="w-14 h-14 min-w-14 min-h-14 text-small"

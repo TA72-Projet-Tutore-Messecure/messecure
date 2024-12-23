@@ -3,7 +3,7 @@
 "use client";
 
 import * as sdk from "matrix-js-sdk/lib/browser-index";
-import { Room } from "matrix-js-sdk";
+import { Room, RoomMember } from "matrix-js-sdk";
 
 import { MatrixErrorParser } from "@/lib/matrixErrorParser";
 
@@ -12,6 +12,7 @@ class MatrixService {
   private matrixClient: sdk.MatrixClient | null = null;
   private accessToken: string | null = null;
   private userId: string | null = null;
+  private avatarCache: Map<string, string> = new Map();
 
   private constructor() {
     if (typeof window !== "undefined") {
@@ -837,7 +838,10 @@ class MatrixService {
   async changeAvatar(avatar: File): Promise<void> {
     try {
       if (this.matrixClient) {
-        const response = await this.matrixClient.uploadContent(avatar, { type: "image/jpeg" })
+        const response = await this.matrixClient.uploadContent(avatar, {
+          type: "image/jpeg",
+        });
+
         await this.matrixClient.setAvatarUrl(response.content_uri);
       }
     } catch (error) {
@@ -857,6 +861,7 @@ class MatrixService {
     try {
       if (this.matrixClient) {
         const profileInfo = await this.matrixClient.getProfileInfo(userId);
+
         return profileInfo.avatar_url ?? null;
       } else {
         return null;
@@ -865,12 +870,144 @@ class MatrixService {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
 
-        throw new Error(`Getting user avatar URL failed: ${parsedError?.message}`, {
-          cause: parsedError,
-        });
+        throw new Error(
+          `Getting user avatar URL failed: ${parsedError?.message}`,
+          {
+            cause: parsedError,
+          },
+        );
       } else {
         throw new Error("Getting user avatar URL failed: Unknown error");
       }
+    }
+  }
+
+  /**
+   * Converts an mxc:// URI to an HTTP(S) URL.
+   * @param mxcUri - The mxc URI to convert.
+   * @returns The corresponding HTTP(S) URL.
+   */
+  public getHttpUrlForMxc(mxcUri: string): string {
+    try {
+      if (!mxcUri.startsWith("mxc://")) {
+        throw new Error("Invalid mxc URI");
+      }
+
+      // Parse the mxc URI
+      const parts = mxcUri.replace("mxc://", "").split("/");
+      const serverName = parts.shift();
+      const mediaId = parts.join("/");
+
+      if (!serverName || !mediaId) {
+        throw new Error("Invalid mxc URI structure");
+      }
+
+      const baseUrl = this.getClient().getHomeserverUrl().replace(/\/+$/, ""); // Remove trailing slashes
+
+      // Construct the download URL in the format:
+      // /_matrix/client/v1/media/download/{serverName}/{mediaId}?width=100&height=100&method=scale
+      return `${baseUrl}/_matrix/client/v1/media/download/${encodeURIComponent(
+        serverName,
+      )}/${encodeURIComponent(mediaId)}?width=100&height=100&method=scale`;
+    } catch (error) {
+      // console.error("Failed to convert mxc URI to HTTP URL:", error);
+
+      return "#"; // Fallback URL
+    }
+  }
+
+  /**
+   * Fetches media content as a Blob using the Matrix client.
+   * @param mxcUri - The mxc:// URI of the media.
+   * @returns A Promise that resolves to the media Blob.
+   */
+  async fetchMediaAsBlob(mxcUri: string): Promise<Blob> {
+    try {
+      const httpUrl = this.getHttpUrlForMxc(mxcUri);
+
+      if (httpUrl === "#") {
+        throw new Error("Invalid media URI");
+      }
+
+      const response = await fetch(httpUrl, {
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch media: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+
+      return blob;
+    } catch (error) {
+      // console.error("Error fetching media as Blob:", error);
+      throw new Error("Failed to download media");
+    }
+  }
+
+  /**
+   * Fetches the user's avatar thumbnail as a Blob URL.
+   * Utilizes caching to prevent redundant network requests.
+   * @param user - The RoomMember object representing the user.
+   * @param options - Optional fetch options.
+   * @returns A Promise that resolves to the Blob URL of the avatar thumbnail.
+   */
+  async getUserAvatarThumbnail(
+    user: RoomMember,
+    options?: { signal?: AbortSignal },
+  ): Promise<string | null> {
+    try {
+      const mxcAvatarUrl = user.getMxcAvatarUrl();
+
+      if (!mxcAvatarUrl) {
+        return null; // User has no avatar
+      }
+
+      // Check if the avatar is already cached
+      if (this.avatarCache.has(mxcAvatarUrl)) {
+        return this.avatarCache.get(mxcAvatarUrl) || null;
+      }
+
+      const thumbnailUrl = this.getHttpUrlForMxc(mxcAvatarUrl);
+
+      if (thumbnailUrl === "#") {
+        return null; // Invalid avatar URL
+      }
+
+      const response = await fetch(thumbnailUrl, {
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+        },
+        signal: options?.signal,
+      });
+
+      if (!response.ok) {
+        // console.error(
+        //   `Failed to fetch avatar thumbnail: ${response.statusText}`,
+        // );
+
+        return null;
+      }
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      // Cache the Blob URL
+      this.avatarCache.set(mxcAvatarUrl, blobUrl);
+
+      return blobUrl;
+    } catch (error) {
+      if ((error as any).name === "AbortError") {
+        // console.warn("Fetch aborted");
+
+        return null;
+      }
+      // console.error("Error fetching user avatar thumbnail:", error);
+
+      return null;
     }
   }
 
@@ -883,9 +1020,12 @@ class MatrixService {
       if (error instanceof Error) {
         const parsedError = MatrixErrorParser.parse(error.toString());
 
-        throw new Error(`Changing display name failed: ${parsedError?.message}`, {
-          cause: parsedError,
-        });
+        throw new Error(
+          `Changing display name failed: ${parsedError?.message}`,
+          {
+            cause: parsedError,
+          },
+        );
       } else {
         throw new Error("Changing display name failed: Unknown error");
       }

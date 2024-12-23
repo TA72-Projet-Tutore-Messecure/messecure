@@ -2,9 +2,10 @@
 
 "use client";
 
-import React from "react";
-import { Avatar } from "@nextui-org/react";
+import React, { useEffect, useState } from "react";
+import { Avatar, Spinner } from "@nextui-org/react";
 import { FaSearch } from "react-icons/fa";
+import { RoomMember } from "matrix-js-sdk";
 
 import { useMatrix } from "@/context/MatrixContext";
 import { DotDropdown } from "@/components/c/content/header/DotDropdown";
@@ -12,6 +13,69 @@ import MatrixService from "@/services/MatrixService";
 
 export const ChatHeader: React.FC = () => {
   const { selectedRoom } = useMatrix();
+
+  // Initialize hooks unconditionally
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!selectedRoom) {
+      // If there's no selectedRoom, reset avatar and loading states
+      setAvatarUrl(null);
+      setIsLoading(false);
+
+      return;
+    }
+
+    let isMounted = true;
+    const controller = new AbortController();
+
+    const members = selectedRoom.getJoinedMembers();
+
+    const fetchAvatar = async () => {
+      if (members.length === 2) {
+        const client = MatrixService.getClient();
+        const myUserId = client.getUserId();
+        const otherMember: RoomMember =
+          members[0].userId !== myUserId ? members[0] : members[1];
+
+        setIsLoading(true);
+        try {
+          const blobUrl = await MatrixService.getUserAvatarThumbnail(
+            otherMember,
+            {
+              signal: controller.signal,
+            },
+          );
+
+          if (isMounted) {
+            setAvatarUrl(blobUrl);
+          }
+        } catch (error) {
+          if (isMounted) {
+            setAvatarUrl(null);
+          }
+        } finally {
+          if (isMounted) {
+            setIsLoading(false);
+          }
+        }
+      } else {
+        setAvatarUrl(null); // For group rooms or if no avatar
+      }
+    };
+
+    fetchAvatar();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+      // Revoke Blob URL to free memory
+      if (avatarUrl) {
+        URL.revokeObjectURL(avatarUrl);
+      }
+    };
+  }, [selectedRoom]);
 
   if (!selectedRoom) {
     return null;
@@ -29,29 +93,20 @@ export const ChatHeader: React.FC = () => {
 
   const displayRoomName = isGroupRoom ? `${roomName} (group)` : roomName;
 
-  const members = selectedRoom.getMembers();
-
-  let avatarUrl = null;
-  if (members.length == 2) {
-    if (members[0].userId != MatrixService.getClient().getUserId()) {
-      avatarUrl = members[0].getAvatarUrl(MatrixService.getClient().getHomeserverUrl(), 100, 100, "scale", false, false);
-    } else {
-      avatarUrl = members[1].getAvatarUrl(MatrixService.getClient().getHomeserverUrl(), 100, 100, "scale", false, false);
-    }
-  }
-
   return (
     <div className="bg-white dark:bg-[#212121] w-full flex justify-between h-[10vh] z-50 shadow items-center">
       <div className="flex flex-row items-center gap-3 ml-[2vw]">
         <div>
-          {avatarUrl ? (
+          {isLoading ? (
+            <Spinner size="sm" />
+          ) : avatarUrl ? (
             <Avatar
-              src={avatarUrl}
               isBordered
+              alt="User Avatar"
               className="cursor-pointer"
               color="primary"
-              alt="User Avatar"
               size="md"
+              src={avatarUrl}
             />
           ) : (
             <Avatar

@@ -9,13 +9,13 @@ import { Card, CardBody, CardHeader } from "@nextui-org/card";
 
 import MatrixService from "@/services/MatrixService";
 
-import AvatarSettings from './AvatarSettings';
+import AvatarSettings from "./AvatarSettings";
 
 interface SettingsInfo {
-    oldPassword: string;
-    newPassword: string;
-    avatar: File | null;
-    displayName: string;
+  oldPassword: string;
+  newPassword: string;
+  avatar: File | null;
+  displayName: string;
 }
 
 export default function Settings() {
@@ -73,7 +73,7 @@ export default function Settings() {
     } catch (error: any) {
       toast.error(error.message || "Avatar change failed. Please try again.");
     }
-  }
+  };
 
   const handleChgDisplayNameSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,14 +81,16 @@ export default function Settings() {
       await MatrixService.changeDisplayName(settingsInfo.displayName);
       toast.success("Display name change successful!");
     } catch (error: any) {
-      toast.error(error.message || "Display name change failed. Please try again.");
+      toast.error(
+        error.message || "Display name change failed. Please try again.",
+      );
     }
   };
 
   const isValidPassword = (password: string) => {
     return password.trim().length > 0;
   };
-  
+
   return (
     <div className="flex items-center justify-center mt-16">
       <Card className="min-w-96 shadow border-1 dark:border-0">
@@ -96,7 +98,10 @@ export default function Settings() {
           <button
             aria-label="back"
             className="absolute left-3 focus:outline-none"
-            onClick={() => router.back()}>Back</button>
+            onClick={() => router.back()}
+          >
+            Back
+          </button>
           <p className="text-md text-2xl">Settings</p>
         </CardHeader>
         <Divider />
@@ -155,9 +160,9 @@ export default function Settings() {
               className="w-full"
               color="primary"
               isDisabled={
-                !isValidPassword(settingsInfo.oldPassword)
-                || !isValidPassword(settingsInfo.newPassword)
-                || settingsInfo.oldPassword == settingsInfo.newPassword
+                !isValidPassword(settingsInfo.oldPassword) ||
+                !isValidPassword(settingsInfo.newPassword) ||
+                settingsInfo.oldPassword == settingsInfo.newPassword
               }
               size="sm"
               type="submit"
@@ -167,7 +172,10 @@ export default function Settings() {
           </form>
           <Divider />
           <p>Avatar change</p>
-          <form className="flex flex-col gap-3" onSubmit={handleChgAvatarSubmit}>
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={handleChgAvatarSubmit}
+          >
             <AvatarSettings onImageUpload={handleImageUpload} />
             <Button className="w-full" color="primary" size="sm" type="submit">
               Change Avatar
@@ -175,7 +183,10 @@ export default function Settings() {
           </form>
           <Divider />
           <p>Display name change</p>
-          <form className="flex flex-col gap-3" onSubmit={handleChgDisplayNameSubmit}>
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={handleChgDisplayNameSubmit}
+          >
             <Input
               isRequired
               label="Display Name"
