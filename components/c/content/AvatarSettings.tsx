@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
+import { FaPlus } from "react-icons/fa6";
+import { IconContext } from "react-icons";
 
 interface AvatarSettingsProps {
   onImageUpload?: (file: File | null) => void;
@@ -27,16 +29,9 @@ const AvatarSettings: React.FC<AvatarSettingsProps> = ({ onImageUpload }) => {
     }
   };
 
-  const removeImage = () => {
-    setImage(null);
-    if (onImageUpload) {
-      onImageUpload(null);
-    }
-  };
-
   return (
     <div className="avatar-settings">
-      <div style={{ textAlign: "center", marginBottom: "20px" }}>
+      <div style={{ textAlign: "center" }}>
         <input
           accept="image/*"
           id="avatar-upload"
@@ -48,49 +43,47 @@ const AvatarSettings: React.FC<AvatarSettingsProps> = ({ onImageUpload }) => {
           htmlFor="avatar-upload"
           style={{
             display: "inline-block",
-            padding: "10px 20px",
-            background: "#0070f3",
             color: "#fff",
             borderRadius: "4px",
             cursor: "pointer",
             textAlign: "center",
           }}
         >
-          {image ? "Change Image" : "Select Image"}
+          {
+            image ? (
+              <div className="preview-container" style={{ textAlign: "center" }}>
+                <Image
+                  alt="Preview"
+                  src={image.previewUrl}
+                  width={150}
+                  height={150}
+                  style={{
+                    width: "100px",
+                    height: "100px",
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                  }}
+                />
+              </div>
+            ) : (
+              <IconContext.Provider value={{ size: "40px" }}>
+                <div style={{
+                  textAlign: "center",
+                  width: "100px",
+                  height: "100px",
+                  borderRadius: "50%",
+                  backgroundColor: "#27272A",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center"
+                }}>
+                  <FaPlus className="text-2xl text-default-400 pointer-events-none" />
+                </div>
+              </IconContext.Provider>
+            )
+          }
         </label>
       </div>
-      {image ? (
-        <div className="preview-container" style={{ textAlign: "center" }}>
-          <Image
-            alt="Preview"
-            src={image.previewUrl}
-            style={{
-              width: "150px",
-              height: "150px",
-              borderRadius: "50%",
-              objectFit: "cover",
-              marginBottom: "10px",
-              margin: "0 auto",
-            }}
-          />
-          <br />
-          <button
-            style={{
-              padding: "5px 10px",
-              background: "#ff6666",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-            onClick={removeImage}
-          >
-            Remove Image
-          </button>
-        </div>
-      ) : (
-        <p style={{ textAlign: "center", color: "#999" }}>No image selected</p>
-      )}
     </div>
   );
 };
