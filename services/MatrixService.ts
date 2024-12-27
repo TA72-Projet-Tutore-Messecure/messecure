@@ -832,6 +832,29 @@ class MatrixService {
       }
     }
   }
+
+  async changeRoomName(roomId: string, newName: string): Promise<void> {
+    try {
+      if (this.matrixClient) {
+        await this.matrixClient.setRoomName(roomId, newName);
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        const parsedError = MatrixErrorParser.parse(error.toString());
+        console.log(parsedError);
+        if (parsedError?.message == null) {
+          throw new Error("Changing room name failed: maybe you do not have the right to rename this room");
+        }
+        else {
+          throw new Error(`Changing room name failed: ${parsedError?.message}`, {
+            cause: parsedError,
+          });
+        }
+      } else {
+        throw new Error("Changing room name failed: Unknown error");
+      }
+    }
+  }
 }
 
 export default MatrixService.getInstance();

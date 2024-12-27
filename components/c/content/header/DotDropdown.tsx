@@ -23,6 +23,7 @@ import {
   FaUserPlus,
   FaUsers,
   FaTimes,
+  FaPen,
 } from "react-icons/fa";
 import { Input } from "@nextui-org/input";
 import { toast } from "react-hot-toast";
@@ -48,7 +49,9 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
 
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const [isRenameRoomModalOpen, setIsRenameRoomModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [newRoomName, setNewRoomName] = useState("");
   const [searchResults, setSearchResults] = useState<
     { user_id: string; display_name: string }[]
   >([]);
@@ -315,6 +318,25 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
     }
   };
 
+  const handleNewRoomNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewRoomName(e.target.value);
+  }
+
+  const handleRenameRoom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRoom) {
+      toast.error("No room selected.");
+      return;
+    }
+
+    try {
+      await MatrixService.changeRoomName(selectedRoom.roomId, newRoomName);
+      toast.success("Room renamed successfully.");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to rename room.");
+    }
+  }
+
   // Collect menu items
   const menuItems = [];
 
@@ -337,6 +359,16 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
       onClick={() => setIsMembersModalOpen(true)}
     >
       Members
+    </DropdownItem>,
+  );
+
+  menuItems.push(
+    <DropdownItem
+      key="renameRoom"
+      startContent={<FaPen className="w-4 h-4" />}
+      onClick={() => setIsRenameRoomModalOpen(true)}
+    >
+      Rename Room
     </DropdownItem>,
   );
 
@@ -503,6 +535,39 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
               onClick={() => setIsMembersModalOpen(false)}
             >
               Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      
+      {/* Rename Room Modal */}
+      <Modal
+        isOpen={isRenameRoomModalOpen}
+        scrollBehavior="inside"
+        onClose={() => setIsRenameRoomModalOpen(false)}
+      >
+        <ModalContent>
+          <ModalHeader>Rename Room</ModalHeader>
+          <ModalBody>
+            <Input
+              fullWidth
+              placeholder="Enter new room name"
+              onChange={handleNewRoomNameChange}
+            />
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              color="default"
+              variant="flat"
+              onClick={() => setIsRenameRoomModalOpen(false)}
+            >
+              Close
+            </Button>
+            <Button
+              color="primary"
+              onClick={handleRenameRoom}
+            >
+              Change Room Name
             </Button>
           </ModalFooter>
         </ModalContent>
