@@ -33,6 +33,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-#synapse uploaded content
-synapse/data/media_store/*
+/synapse/data/media_store/*
+/synapse/data/homeserver.yaml
+/synapse/data/localhost.signing.key
+.idea
+.idea/*
+.idea/dataSources/*

@@ -8,7 +8,7 @@ services:
       - postgres
     volumes:
       - ./synapse/homeserver.yaml:/data/homeserver.yaml
-      - ./synapse/data:/data
+      - ./synapse/data:/data  # Mount the entire data directory
     environment:
       SYNAPSE_SERVER_NAME: localhost  # Replace with your actual domain
       SYNAPSE_REPORT_STATS: 'yes'
@@ -28,23 +28,23 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
 
-  messecure:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: runner  # Specifies the final stage in the Dockerfile
-    container_name: messecure-app
-    ports:
-      - "3000:3000"
-    depends_on:
-      - synapse
-      - postgres
-    environment:
-      NODE_ENV: production
-      # Add other environment variables as needed, e.g.,
-      # DATABASE_URL: postgres://synapse:aComplexPassphraseNobodyCanGuess@postgres:5432/synapse
-      # SYNAPSE_URL: http://synapse:8008
-    restart: unless-stopped
+#  messecure:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#      target: runner  # Specifies the final stage in the Dockerfile
+#    container_name: messecure-app
+#    ports:
+#      - "3000:3000"
+#    depends_on:
+#      - synapse
+#      - postgres
+#    environment:
+#      NODE_ENV: production
+#      # Add other environment variables as needed, e.g.,
+#      # DATABASE_URL: postgres://synapse:aComplexPassphraseNobodyCanGuess@postgres:5432/synapse
+#      # SYNAPSE_URL: http://synapse:8008
+#    restart: unless-stopped
 
 volumes:
   postgres_data:

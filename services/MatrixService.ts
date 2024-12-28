@@ -1,9 +1,12 @@
+/* eslint-disable prettier/prettier */
 // services/MatrixService.ts
 
 "use client";
 
 import * as sdk from "matrix-js-sdk/lib/browser-index";
 import { Room, RoomMember } from "matrix-js-sdk";
+import { RoomMessageEventContent } from "matrix-js-sdk/lib/@types/events";
+import { EventType, MsgType } from "matrix-js-sdk/lib/@types/event";
 
 import { MatrixErrorParser } from "@/lib/matrixErrorParser";
 
@@ -834,6 +837,39 @@ class MatrixService {
       }
     }
   }
+
+  /**
+   * Upload a file to a room.
+   * @param roomId - The ID of the room.
+   * @param file - The file to upload.
+   */
+  async uploadFile(roomId: string, file: File) : Promise<void> {
+    const client = this.getClient();
+
+    try {
+      const uploadUrl = await client.uploadContent(file, {
+        name: file.name,
+        type: file.type,
+      });
+
+      const content: RoomMessageEventContent = {
+        msgtype: MsgType.File,
+        body: file.name,
+        url: uploadUrl.content_uri,
+        info: {
+          mimetype: file.type,
+          size: file.size,
+        },
+      };
+
+      await client.sendEvent(roomId, EventType.RoomMessage, content);
+    } catch(error) {
+      // console.error("Error uploading file:", error);
+      throw new Error("File upload failed");
+    }
+  }
+
+  
 
   async changeAvatar(avatar: File): Promise<void> {
     try {

@@ -28,6 +28,7 @@ interface MatrixContextProps {
   leaveGroupRoom: (roomId: string) => Promise<void>;
   kickUserFromGroupRoom: (roomId: string, userId: string) => Promise<void>;
   deleteGroupRoom: (roomId: string) => Promise<void>;
+  uploadFile: (roomId: string, file: File) => Promise<void>;
 }
 
 const MatrixContext = createContext<MatrixContextProps | undefined>(undefined);
@@ -304,6 +305,21 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   /**
+   * Uploads a file to the currently selected room.
+   * @param roomId - The ID of the room to upload the file to.
+   * @param file - The File object to upload.
+   */
+  const uploadFile = useCallback(
+    async (roomId: string, file: File) => {
+      try {
+        await MatrixService.uploadFile(roomId, file);
+        toast.success("File uploaded successfully.");
+      } catch (error: any) {
+        toast.error(error.message || "Failed to upload file.");
+      }
+    }, [selectedRoom]);
+
+  /**
    * Initializes the Matrix client and sets up event listeners.
    */
   useEffect(() => {
@@ -459,6 +475,7 @@ export const MatrixProvider: React.FC<{ children: React.ReactNode }> = ({
         leaveGroupRoom,
         kickUserFromGroupRoom,
         deleteGroupRoom,
+        uploadFile,
       }}
     >
       {children}
