@@ -49,25 +49,25 @@ const AvatarSettings: React.FC<AvatarSettingsProps> = ({ onImageUpload }) => {
             textAlign: "center",
           }}
         >
-          {
-            image ? (
-              <div className="preview-container" style={{ textAlign: "center" }}>
-                <Image
-                  alt="Preview"
-                  src={image.previewUrl}
-                  width={150}
-                  height={150}
-                  style={{
-                    width: "100px",
-                    height: "100px",
-                    borderRadius: "50%",
-                    objectFit: "cover",
-                  }}
-                />
-              </div>
-            ) : (
-              <IconContext.Provider value={{ size: "40px" }}>
-                <div style={{
+          {image ? (
+            <div className="preview-container" style={{ textAlign: "center" }}>
+              <Image
+                alt="Preview"
+                height={150}
+                src={image.previewUrl}
+                style={{
+                  width: "100px",
+                  height: "100px",
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                }}
+                width={150}
+              />
+            </div>
+          ) : (
+            <IconContext.Provider value={{ size: "40px" }}>
+              <div
+                style={{
                   textAlign: "center",
                   width: "100px",
                   height: "100px",
@@ -75,13 +75,13 @@ const AvatarSettings: React.FC<AvatarSettingsProps> = ({ onImageUpload }) => {
                   backgroundColor: "#27272A",
                   display: "flex",
                   justifyContent: "center",
-                  alignItems: "center"
-                }}>
-                  <FaPlus className="text-2xl text-default-400 pointer-events-none" />
-                </div>
-              </IconContext.Provider>
-            )
-          }
+                  alignItems: "center",
+                }}
+              >
+                <FaPlus className="text-2xl text-default-400 pointer-events-none" />
+              </div>
+            </IconContext.Provider>
+          )}
         </label>
       </div>
     </div>

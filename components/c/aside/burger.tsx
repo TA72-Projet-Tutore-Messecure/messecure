@@ -46,7 +46,8 @@ export const CAsideBurger = () => {
 
   const [isCreateRoomModalOpen, setIsCreateRoomModalOpen] = useState(false);
   const [isChgPwdModalOpen, setIsChgPwdModalOpen] = useState(false);
-  const [isChgAvatarAndNameModalOpen, setIsChgAvatarAndNameModalOpen] = useState(false);
+  const [isChgAvatarAndNameModalOpen, setIsChgAvatarAndNameModalOpen] =
+    useState(false);
 
   const [isOldPwdVisible, setIsOldPwdVisible] = useState(false);
   const [isNewPwdVisible, setIsNewPwdVisible] = useState(false);
@@ -223,7 +224,10 @@ export const CAsideBurger = () => {
       </Dropdown>
 
       {/* Create Room Modal */}
-      <Modal isOpen={isCreateRoomModalOpen} onClose={() => setIsCreateRoomModalOpen(false)}>
+      <Modal
+        isOpen={isCreateRoomModalOpen}
+        onClose={() => setIsCreateRoomModalOpen(false)}
+      >
         <ModalContent>
           <ModalHeader>Create New Room</ModalHeader>
           <ModalBody>
@@ -251,7 +255,10 @@ export const CAsideBurger = () => {
       </Modal>
 
       {/* Change Password Modal */}
-      <Modal isOpen={isChgPwdModalOpen} onClose={() => setIsChgPwdModalOpen(false)}>
+      <Modal
+        isOpen={isChgPwdModalOpen}
+        onClose={() => setIsChgPwdModalOpen(false)}
+      >
         <ModalContent>
           <ModalHeader>Change Password</ModalHeader>
           <ModalBody>
@@ -314,12 +321,12 @@ export const CAsideBurger = () => {
             </Button>
             <Button
               color="primary"
-              onClick={handleChangePassword}
               isDisabled={
                 !isValidPassword(settingsInfo.oldPassword) ||
                 !isValidPassword(settingsInfo.newPassword) ||
                 settingsInfo.oldPassword == settingsInfo.newPassword
               }
+              onClick={handleChangePassword}
             >
               Change Password
             </Button>
@@ -328,11 +335,14 @@ export const CAsideBurger = () => {
       </Modal>
 
       {/* Change Avatar and Display Name Modal */}
-      <Modal isOpen={isChgAvatarAndNameModalOpen} onClose={() => setIsChgAvatarAndNameModalOpen(false)}>
+      <Modal
+        isOpen={isChgAvatarAndNameModalOpen}
+        onClose={() => setIsChgAvatarAndNameModalOpen(false)}
+      >
         <ModalContent>
           <ModalHeader>Change Avatar & Display Name</ModalHeader>
           <ModalBody>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
               <div style={{ flexShrink: 0 }}>
                 <AvatarSettings onImageUpload={handleImageUpload} />
               </div>
@@ -357,15 +367,15 @@ export const CAsideBurger = () => {
             </Button>
             <Button
               color="primary"
-              onClick={handleChangeAvatar}
               isDisabled={!settingsInfo.avatar}
+              onClick={handleChangeAvatar}
             >
               Change Avatar
             </Button>
             <Button
               color="primary"
-              onClick={handleChgDisplayName}
               isDisabled={!settingsInfo.displayName.trim()}
+              onClick={handleChgDisplayName}
             >
               Change Display Name
             </Button>

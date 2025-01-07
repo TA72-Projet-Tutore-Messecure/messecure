@@ -320,12 +320,13 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
 
   const handleNewRoomNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewRoomName(e.target.value);
-  }
+  };
 
   const handleRenameRoom = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRoom) {
       toast.error("No room selected.");
+
       return;
     }
 
@@ -335,7 +336,7 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
     } catch (error: any) {
       toast.error(error.message || "Failed to rename room.");
     }
-  }
+  };
 
   // Collect menu items
   const menuItems = [];
@@ -352,25 +353,26 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
     );
   }
 
-  menuItems.push(
-    <DropdownItem
-      key="viewMembers"
-      startContent={<FaUsers className="w-4 h-4" />}
-      onClick={() => setIsMembersModalOpen(true)}
-    >
-      Members
-    </DropdownItem>,
-  );
-
-  menuItems.push(
-    <DropdownItem
-      key="renameRoom"
-      startContent={<FaPen className="w-4 h-4" />}
-      onClick={() => setIsRenameRoomModalOpen(true)}
-    >
-      Rename Room
-    </DropdownItem>,
-  );
+  if (isGroupRoom) {
+    menuItems.push(
+      <DropdownItem
+        key="viewMembers"
+        startContent={<FaUsers className="w-4 h-4" />}
+        onClick={() => setIsMembersModalOpen(true)}
+      >
+        Members
+      </DropdownItem>,
+    );
+    menuItems.push(
+      <DropdownItem
+        key="renameRoom"
+        startContent={<FaPen className="w-4 h-4" />}
+        onClick={() => setIsRenameRoomModalOpen(true)}
+      >
+        Rename Room
+      </DropdownItem>,
+    );
+  }
 
   menuItems.push(
     <DropdownItem
@@ -539,7 +541,7 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
           </ModalFooter>
         </ModalContent>
       </Modal>
-      
+
       {/* Rename Room Modal */}
       <Modal
         isOpen={isRenameRoomModalOpen}
@@ -563,10 +565,7 @@ export const DotDropdown: React.FC<DotDropdownProps> = ({ isGroupRoom }) => {
             >
               Close
             </Button>
-            <Button
-              color="primary"
-              onClick={handleRenameRoom}
-            >
+            <Button color="primary" onClick={handleRenameRoom}>
               Change Room Name
             </Button>
           </ModalFooter>

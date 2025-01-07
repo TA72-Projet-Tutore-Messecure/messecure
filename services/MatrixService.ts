@@ -1076,6 +1076,7 @@ class MatrixService {
   } catch (error) {
     if (error instanceof Error) {
       const parsedError = MatrixErrorParser.parse(error.toString());
+
       console.log(parsedError);
       if (parsedError?.message == null) {
         throw new Error("Changing room name failed: maybe you do not have the right to rename this room");

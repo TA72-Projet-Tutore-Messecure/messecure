@@ -4,7 +4,6 @@
 
 import React, { useEffect, useState } from "react";
 import { Avatar, Spinner } from "@nextui-org/react";
-import { FaSearch } from "react-icons/fa";
 import { RoomMember } from "matrix-js-sdk";
 
 import { useMatrix } from "@/context/MatrixContext";
@@ -123,7 +122,7 @@ export const ChatHeader: React.FC = () => {
         </h3>
       </div>
       <div className="flex flex-row items-center gap-4 mr-[2vw]">
-        <FaSearch className="w-5 h-5 cursor-pointer" />
+        {/*<FaSearch className="w-5 h-5 cursor-pointer" />*/}
         <DotDropdown isGroupRoom={isGroupRoom} />
       </div>
     </div>
