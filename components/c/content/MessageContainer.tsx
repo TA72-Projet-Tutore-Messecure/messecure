@@ -6,7 +6,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { MatrixEvent, RoomMember, Room } from "matrix-js-sdk";
 
 import { BaseMessage } from "@/components/c/content/messages/BaseMessage";
-import { DocumentMessage } from "@/components/c/content/messages/DocumentMessage"; // Import DocumentMessage
+import { DocumentMessage } from "@/components/c/content/messages/DocumentMessage";
+import { ImageMessage } from "@/components/c/content/messages/ImageMessage"; // <-- Import the new component
 import { MessageStatus, MessageTarget } from "@/types/messages";
 import MatrixService from "@/services/MatrixService";
 import { useMatrix } from "@/context/MatrixContext";
@@ -155,7 +156,7 @@ export const MessageContainer: React.FC = () => {
     // @ts-ignore
     room.on("Room.timeline", handleRoomTimeline);
 
-    // Cleanup listeners on unmount or when room changes
+    // Cleanup listeners
     return () => {
       // @ts-ignore
       room.removeListener("RoomMember.membership", handleMemberEvent);
@@ -202,12 +203,10 @@ export const MessageContainer: React.FC = () => {
             ? MessageTarget.SENDER
             : MessageTarget.RECEIVER;
         const status = messageStatuses[event.getId()!] || MessageStatus.SENT;
-
-        // Check if the event is redacted (deleted)
         const isRedacted = event.isRedacted();
 
-        if (msgType === "m.file") {
-          // It's a file message, render DocumentMessage
+        // 1) If it’s a file message:
+        if (msgType === "m.file" && !isRedacted) {
           const documentName = content.body || "Untitled";
           const documentSize = content.info?.size
             ? formatFileSize(content.info.size)
@@ -220,9 +219,9 @@ export const MessageContainer: React.FC = () => {
               documentLink={documentLink}
               documentName={documentName}
               documentSize={documentSize}
-              eventId={event.getId()!} // Passing eventId
-              isRedacted={isRedacted} // Passing isRedacted
-              message={documentName} // Passing message (can be customized)
+              eventId={event.getId()!}
+              isRedacted={false}
+              message={documentName}
               status={status}
               target={target}
               time={time}
@@ -230,13 +229,33 @@ export const MessageContainer: React.FC = () => {
           );
         }
 
+        // 2) If it’s an image message:
+        if (msgType === "m.image" && !isRedacted) {
+          const imageLink = content.url || "#";
+          const imageName = content.body || "image";
+          // You could also pass file size or other metadata if needed
+
+          return (
+            <ImageMessage
+              key={event.getId()}
+              eventId={event.getId()!}
+              imageLink={imageLink}
+              imageName={imageName}
+              isRedacted={false}
+              status={status}
+              target={target}
+              time={time}
+            />
+          );
+        }
+
+        // 3) If the message is redacted (deleted), show a "Message deleted" placeholder
         if (isRedacted) {
-          // Render BaseMessage for redacted messages
           return (
             <BaseMessage
               key={event.getId()}
               eventId={event.getId()!}
-              isRedacted={isRedacted}
+              isRedacted={true}
               message="Message deleted"
               status={status}
               target={target}
@@ -245,14 +264,14 @@ export const MessageContainer: React.FC = () => {
           );
         }
 
-        // For other message types, use BaseMessage
+        // 4) Fallback: a normal text message
         const message = content.body || "";
 
         return (
           <BaseMessage
             key={event.getId()}
             eventId={event.getId()!}
-            isRedacted={isRedacted}
+            isRedacted={false}
             message={message}
             status={status}
             target={target}

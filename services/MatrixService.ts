@@ -843,7 +843,7 @@ class MatrixService {
    * @param roomId - The ID of the room.
    * @param file - The file to upload.
    */
-  async uploadFile(roomId: string, file: File) : Promise<void> {
+  async uploadFile(roomId: string, file: File): Promise<void> {
     const client = this.getClient();
 
     try {
@@ -852,19 +852,28 @@ class MatrixService {
         type: file.type,
       });
 
+      // If it's an image, we can set content as "m.image"
+      // You can detect by checking file.type.startsWith('image/')
+      let msgType: MsgType = MsgType.File;
+
+      if (file.type.startsWith("image/")) {
+        msgType = MsgType.Image;
+      }
+
+      // @ts-ignore
       const content: RoomMessageEventContent = {
-        msgtype: MsgType.File,
+        msgtype: msgType,
         body: file.name,
         url: uploadUrl.content_uri,
         info: {
           mimetype: file.type,
           size: file.size,
+          // you can add width/height if you want (for images)
         },
       };
 
       await client.sendEvent(roomId, EventType.RoomMessage, content);
-    } catch(error) {
-      // console.error("Error uploading file:", error);
+    } catch (error) {
       throw new Error("File upload failed");
     }
   }
@@ -1077,7 +1086,6 @@ class MatrixService {
     if (error instanceof Error) {
       const parsedError = MatrixErrorParser.parse(error.toString());
 
-      console.log(parsedError);
       if (parsedError?.message == null) {
         throw new Error("Changing room name failed: maybe you do not have the right to rename this room");
       }
