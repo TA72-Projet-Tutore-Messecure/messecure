@@ -15,6 +15,8 @@ export interface BaseMessageProps {
   target: MessageTarget; // Message target
   status: MessageStatus; // Message status
   message: string; // Message content
+  senderName?: string;
+  isGroupRoom?: boolean;
   eventId: string;
   isRedacted: boolean;
 }

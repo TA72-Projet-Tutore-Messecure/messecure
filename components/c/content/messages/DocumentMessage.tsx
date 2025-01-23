@@ -1,26 +1,39 @@
+// components/c/content/messages/DocumentMessage.tsx
+
 "use client";
 
 import React, { useState } from "react";
 import { CheckIcon } from "@nextui-org/shared-icons";
 import { CheckCheckIcon, Clock } from "lucide-react";
-import { FaFile, FaTrash } from "react-icons/fa";
-import { toast } from "react-hot-toast";
 import {
   Dropdown,
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
 } from "@nextui-org/react";
+import { FaFile, FaTrash } from "react-icons/fa";
+import { toast } from "react-hot-toast";
 
+import { useMatrix } from "@/context/MatrixContext";
 import {
   DocumentMessageProps,
   MessageStatus,
   MessageTarget,
 } from "@/types/messages";
 import MatrixService from "@/services/MatrixService";
-import { useMatrix } from "@/context/MatrixContext";
 
-export const DocumentMessage: React.FC<DocumentMessageProps> = ({
+/**
+ * Extend your DocumentMessageProps to optionally include:
+ * - senderName?: string
+ * - isGroupRoom?: boolean
+ */
+
+export const DocumentMessage: React.FC<
+  DocumentMessageProps & {
+    senderName?: string;
+    isGroupRoom?: boolean;
+  }
+> = ({
   eventId,
   isRedacted,
   time,
@@ -29,6 +42,8 @@ export const DocumentMessage: React.FC<DocumentMessageProps> = ({
   documentName,
   documentSize,
   documentLink,
+  senderName,
+  isGroupRoom,
 }) => {
   const { deleteMessage } = useMatrix();
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
@@ -50,31 +65,7 @@ export const DocumentMessage: React.FC<DocumentMessageProps> = ({
     handleClosePopover();
   };
 
-  // Prepare the possible actions
-  const actions = [];
-
-  if (target === MessageTarget.SENDER && !isRedacted) {
-    actions.push(
-      <DropdownItem
-        key="deleteMessage"
-        color="danger"
-        onClick={handleDeleteMessage}
-      >
-        <span className="flex flex-row gap-2 items-center">
-          <FaTrash /> Delete Message
-        </span>
-      </DropdownItem>,
-    );
-  }
-  if (actions.length === 0) {
-    actions.push(
-      <DropdownItem key="noAction" isReadOnly>
-        No actions available.
-      </DropdownItem>,
-    );
-  }
-
-  // Handle document click/download
+  // handle click => download
   const handleDocumentClick = async () => {
     try {
       const blob = await MatrixService.fetchMediaAsBlob(documentLink);
@@ -94,7 +85,7 @@ export const DocumentMessage: React.FC<DocumentMessageProps> = ({
     }
   };
 
-  // If the message is redacted, display a placeholder
+  // If redacted => placeholder
   if (isRedacted) {
     return (
       <div
@@ -107,7 +98,7 @@ export const DocumentMessage: React.FC<DocumentMessageProps> = ({
             target === MessageTarget.SENDER
               ? "message-sender text-black bg-[#eeffde] dark:text-white dark:!bg-[#766ac8] rounded-l-xl rounded-t-xl"
               : "bg-white dark:bg-[#212121] rounded-xl"
-          } flex flex-col gap-1 max-w-[33%] py-3 px-3`}
+          } px-3 py-2 flex flex-col max-w-[33%] gap-1`}
         >
           <div className="message-deleted text-gray-500 dark:text-gray-400">
             Message deleted
@@ -141,12 +132,7 @@ export const DocumentMessage: React.FC<DocumentMessageProps> = ({
     );
   }
 
-  /**
-   * RENDER LOGIC FOR NON-REDACTED MESSAGE
-   * We'll show a different UI for sender vs. non-sender.
-   */
-
-  // Common classes to apply to both paths
+  // Container classes
   const containerWrapperClass = `w-full px-32 flex flex-row ${
     target === MessageTarget.SENDER ? "justify-end" : "justify-start"
   }`;
@@ -154,14 +140,33 @@ export const DocumentMessage: React.FC<DocumentMessageProps> = ({
     target === MessageTarget.SENDER
       ? "message-sender text-black bg-[#eeffde] dark:text-white dark:!bg-[#766ac8] rounded-l-xl rounded-t-xl"
       : "bg-white dark:bg-[#212121] rounded-xl"
-  } flex flex-col gap-1 max-w-[33%] py-3 px-3`;
-  const messageTimeClass = `message-time ${
-    target === MessageTarget.SENDER
-      ? "text-[#60b75e] dark:text-[#aea7de]"
-      : "text-[#47494c]"
-  } text-xs`;
+  } px-3 py-2 flex flex-col max-w-[33%] gap-1`;
 
-  // RENDER PATH A: The message is from the authenticated user (SENDER)
+  // Prepare dropdown actions
+  const actions = [];
+
+  if (target === MessageTarget.SENDER && !isRedacted) {
+    actions.push(
+      <DropdownItem
+        key="deleteMessage"
+        color="danger"
+        onClick={handleDeleteMessage}
+      >
+        <span className="flex flex-row gap-2 items-center">
+          <FaTrash /> Delete Message
+        </span>
+      </DropdownItem>,
+    );
+  }
+  if (actions.length === 0) {
+    actions.push(
+      <DropdownItem key="noAction" isReadOnly>
+        No actions available.
+      </DropdownItem>,
+    );
+  }
+
+  // SENDER path => show 3 dots for action menu
   if (target === MessageTarget.SENDER) {
     return (
       <div className={containerWrapperClass} data-event-id={eventId}>
@@ -176,6 +181,7 @@ export const DocumentMessage: React.FC<DocumentMessageProps> = ({
         >
           <DropdownTrigger>
             <div className={containerClass} onContextMenu={handleContextMenu}>
+              {/* If from me -> just the doc name + download */}
               <button
                 className="message-content document-message flex items-center gap-2 w-full h-full"
                 onClick={handleDocumentClick}
@@ -193,9 +199,17 @@ export const DocumentMessage: React.FC<DocumentMessageProps> = ({
                 </div>
               </button>
 
+              {/* time + status at bottom-right */}
               <div className="message-info w-full flex flex-row justify-end items-center gap-1">
-                <span className={messageTimeClass}>{time}</span>
-                {/* Show the status if we are the sender */}
+                <span
+                  className={`message-time ${
+                    target === MessageTarget.SENDER
+                      ? "text-[#60b75e] dark:text-[#aea7de]"
+                      : "text-[#47494c]"
+                  } text-xs`}
+                >
+                  {time}
+                </span>
                 <span className="message-status">
                   {status === MessageStatus.SENT && (
                     <Clock className="w-3 text-[#4eb25b] dark:text-white font-bold" />
@@ -219,11 +233,14 @@ export const DocumentMessage: React.FC<DocumentMessageProps> = ({
     );
   }
 
-  // RENDER PATH B: The message is from someone else (NOT SENDER)
-  // --> No dropdown, no context menu; just click to download.
+  // RECEIVER path => if group & from user => show senderName top-left in bigger text
   return (
     <div className={containerWrapperClass} data-event-id={eventId}>
       <div className={containerClass}>
+        {target === MessageTarget.RECEIVER && isGroupRoom && senderName && (
+          <div className="text-md text-primary font-bold">{senderName}</div>
+        )}
+
         <button
           className="message-content document-message flex items-center gap-2 w-full h-full"
           onClick={handleDocumentClick}
@@ -242,8 +259,16 @@ export const DocumentMessage: React.FC<DocumentMessageProps> = ({
         </button>
 
         <div className="message-info w-full flex flex-row justify-end items-center gap-1">
-          <span className={messageTimeClass}>{time}</span>
-          {/* No status icons since we aren't the sender */}
+          <span
+            className={`message-time ${
+              // @ts-ignore
+              target === MessageTarget.SENDER
+                ? "text-[#60b75e] dark:text-[#aea7de]"
+                : "text-[#47494c]"
+            } text-xs`}
+          >
+            {time}
+          </span>
         </div>
       </div>
     </div>

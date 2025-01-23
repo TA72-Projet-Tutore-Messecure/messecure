@@ -7,7 +7,7 @@ import { MatrixEvent, RoomMember, Room } from "matrix-js-sdk";
 
 import { BaseMessage } from "@/components/c/content/messages/BaseMessage";
 import { DocumentMessage } from "@/components/c/content/messages/DocumentMessage";
-import { ImageMessage } from "@/components/c/content/messages/ImageMessage"; // <-- Import the new component
+import { ImageMessage } from "@/components/c/content/messages/ImageMessage";
 import { MessageStatus, MessageTarget } from "@/types/messages";
 import MatrixService from "@/services/MatrixService";
 import { useMatrix } from "@/context/MatrixContext";
@@ -180,33 +180,44 @@ export const MessageContainer: React.FC = () => {
   const isDirectRoom = MatrixService.isDirectRoom(selectedRoom.roomId);
   const isDM = MatrixService.isDMRoomInvitedMember(selectedRoom);
   const isDirectMessage = isDirectRoom || isDM;
+  const isGroupRoom = !isDirectMessage;
 
   return (
     <div className="relative w-full h-full py-2 flex flex-col gap-3 overflow-y-auto max-h-[80vh]">
-      {/* Notification if the other user hasn't joined in a direct message */}
-      {!otherUserJoined && isDirectMessage && (
-        <div className="w-full flex flex-row justify-center">
-          <div className="relative text-black bg-orange-200 dark:text-white dark:!bg-red-600 rounded-xl px-4 py-2 flex flex-col max-w-[43%] gap-1">
-            <div>The user has not joined yet.</div>
-          </div>
-        </div>
-      )}
-
-      {/* Render each message */}
       {messages.map((event: MatrixEvent) => {
         const sender = event.getSender();
         const content = event.getContent();
         const msgType = content.msgtype;
-        const time = event.getDate()?.toLocaleTimeString() || "";
+        const isRedacted = event.isRedacted();
+        const dateObj = event.getDate();
+        const time = dateObj
+          ? dateObj.toLocaleTimeString("en-GB", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "";
+
+        // Determine whether this message was sent by me or not
+        const currentUserId = MatrixService.getClient().getUserId();
         const target =
-          sender === MatrixService.getClient().getUserId()
+          sender === currentUserId
             ? MessageTarget.SENDER
             : MessageTarget.RECEIVER;
-        const status = messageStatuses[event.getId()!] || MessageStatus.SENT;
-        const isRedacted = event.isRedacted();
 
-        // 1) If it’s a file message:
+        // If you have status logic, pull from your existing code
+        const status = messageStatuses[event.getId()!] ?? MessageStatus.SENT;
+
+        // If it's a group room and the message is from another user, show their name
+        let senderName: string | undefined = undefined;
+
+        if (isGroupRoom && target === MessageTarget.RECEIVER) {
+          // You can use the event's RoomMember display name or fallback to userId
+          senderName = event.sender?.name || event.getSender();
+        }
+
+        // Render based on msgType
         if (msgType === "m.file" && !isRedacted) {
+          // Document message
           const documentName = content.body || "Untitled";
           const documentSize = content.info?.size
             ? formatFileSize(content.info.size)
@@ -220,67 +231,72 @@ export const MessageContainer: React.FC = () => {
               documentName={documentName}
               documentSize={documentSize}
               eventId={event.getId()!}
+              isGroupRoom={isGroupRoom}
               isRedacted={false}
-              message={documentName}
+              message={""}
+              senderName={senderName}
               status={status}
               target={target}
               time={time}
             />
           );
-        }
-
-        // 2) If it’s an image message:
-        if (msgType === "m.image" && !isRedacted) {
+        } else if (msgType === "m.image" && !isRedacted) {
+          // Image message
           const imageLink = content.url || "#";
           const imageName = content.body || "image";
-          // You could also pass file size or other metadata if needed
 
           return (
             <ImageMessage
               key={event.getId()}
               eventId={event.getId()!}
               imageLink={imageLink}
-              imageName={imageName}
+              isGroupRoom={isGroupRoom}
               isRedacted={false}
               status={status}
               target={target}
               time={time}
+              imageName={imageName}
+              /** pass these new props */
+              senderName={senderName}
             />
           );
-        }
-
-        // 3) If the message is redacted (deleted), show a "Message deleted" placeholder
-        if (isRedacted) {
+        } else if (isRedacted) {
+          // Redacted message => show placeholder
           return (
             <BaseMessage
               key={event.getId()}
               eventId={event.getId()!}
+              isGroupRoom={isGroupRoom}
               isRedacted={true}
-              message="Message deleted"
               status={status}
               target={target}
               time={time}
+              message="Message deleted"
+              /** pass these new props */
+              senderName={senderName}
+            />
+          );
+        } else {
+          // Regular text message
+          const message = content.body || "";
+
+          return (
+            <BaseMessage
+              key={event.getId()}
+              eventId={event.getId()!}
+              isGroupRoom={isGroupRoom}
+              isRedacted={false}
+              status={status}
+              target={target}
+              time={time}
+              message={message}
+              /** pass these new props */
+              senderName={senderName}
             />
           );
         }
-
-        // 4) Fallback: a normal text message
-        const message = content.body || "";
-
-        return (
-          <BaseMessage
-            key={event.getId()}
-            eventId={event.getId()!}
-            isRedacted={false}
-            message={message}
-            status={status}
-            target={target}
-            time={time}
-          />
-        );
       })}
 
-      {/* Ref to scroll to the bottom */}
       <div ref={messagesEndRef} />
     </div>
   );

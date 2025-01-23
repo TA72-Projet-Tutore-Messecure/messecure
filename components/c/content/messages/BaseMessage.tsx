@@ -21,6 +21,15 @@ import {
   MessageTarget,
 } from "@/types/messages";
 
+/**
+ * Extend your BaseMessageProps to optionally include:
+ * - senderName?: string
+ * - isGroupRoom?: boolean
+ *
+ * Make sure your "MessageContainer" or wherever you map events
+ * sets senderName and isGroupRoom for group chats from other users.
+ */
+
 export const BaseMessage: React.FC<BaseMessageProps> = ({
   time,
   target,
@@ -28,9 +37,10 @@ export const BaseMessage: React.FC<BaseMessageProps> = ({
   message,
   eventId,
   isRedacted,
+  senderName,
+  isGroupRoom,
 }) => {
   const { deleteMessage } = useMatrix();
-
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   const handleContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -53,8 +63,8 @@ export const BaseMessage: React.FC<BaseMessageProps> = ({
   const handleCopyMessage = () => {
     if (message) {
       navigator.clipboard.writeText(message);
+      toast.success("Message copied to clipboard.");
     }
-    toast.success("Message copied to clipboard.");
     handleClosePopover();
   };
 
@@ -71,7 +81,7 @@ export const BaseMessage: React.FC<BaseMessageProps> = ({
     );
   }
 
-  // Add "Delete Message" action if the user is the sender and the message is not redacted
+  // Add "Delete" if you are the sender and the message isn't redacted
   if (target === MessageTarget.SENDER && !isRedacted) {
     actions.push(
       <DropdownItem
@@ -86,7 +96,6 @@ export const BaseMessage: React.FC<BaseMessageProps> = ({
     );
   }
 
-  // If no actions are available, display "No actions available"
   if (actions.length === 0) {
     actions.push(
       <DropdownItem key="noAction" isReadOnly>
@@ -103,8 +112,8 @@ export const BaseMessage: React.FC<BaseMessageProps> = ({
     >
       <Dropdown
         classNames={{
-          base: "before:bg-default-200", // change arrow background
-          content: "py-1 px-1 backdrop-blur-md bg-opacity-80", // change dropdown content
+          base: "before:bg-default-200",
+          content: "py-1 px-1 backdrop-blur-md bg-opacity-80",
         }}
         isOpen={isPopoverOpen}
         placement="right"
@@ -116,9 +125,17 @@ export const BaseMessage: React.FC<BaseMessageProps> = ({
               target === MessageTarget.SENDER
                 ? "message-sender text-black bg-[#eeffde] dark:text-white dark:!bg-[#766ac8] rounded-l-xl rounded-t-xl"
                 : "bg-white dark:bg-[#212121] rounded-xl"
-            }  px-4 py-2 flex flex-col max-w-[43%] gap-1`}
+            } px-3 py-2 flex flex-col max-w-[43%] gap-1`}
             onContextMenu={handleContextMenu}
           >
+            {/**
+             * If this is a group room, the message is from another user,
+             * and we have a senderName, show it top-left in bigger, primary color text.
+             */}
+            {target === MessageTarget.RECEIVER && isGroupRoom && senderName && (
+              <div className="text-md text-primary font-bold">{senderName}</div>
+            )}
+
             <div
               className={`message-content break-words ${
                 isRedacted ? "italic text-gray-500 dark:text-gray-400" : ""
@@ -132,7 +149,7 @@ export const BaseMessage: React.FC<BaseMessageProps> = ({
                   target === MessageTarget.SENDER
                     ? "text-[#60b75e] dark:text-[#aea7de]"
                     : "text-[#47494c]"
-                }  text-xs`}
+                } text-xs`}
               >
                 {time}
               </span>
